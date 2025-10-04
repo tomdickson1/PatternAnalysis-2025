@@ -45,7 +45,7 @@ class DownBlock(nn.Module):
     
 class UpscaleModule(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3):
-        super().__init__(UpscaleModule)
+        super().__init__()
         self.blocks = nn.Sequential(
             nn.Upsample(scale_factor=2),
             nn.Conv3d(in_channels, out_channels, kernel_size=kernel_size)
@@ -67,7 +67,7 @@ class LocalisationModule(nn.Module):
 
 class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
-        super().__init__(UpBlock)
+        super().__init__()
         self.upscale = UpscaleModule(in_channels, out_channels)
         self.localisation = LocalisationModule(in_channels, out_channels)
     
