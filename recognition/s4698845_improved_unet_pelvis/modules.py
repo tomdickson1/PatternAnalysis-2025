@@ -20,11 +20,11 @@ class ContextModule(nn.Module):
         # as per [1], replace BatchNorm with InstanceNorm
         self.path = nn.Sequential(
             nn.InstanceNorm3d(num_features),
-            nn.Conv3d(num_features, num_features, kernel_size=kernel_size),
+            nn.Conv3d(num_features, num_features, kernel_size=kernel_size, padding=1),
             nn.LeakyReLU(0.01),
             nn.Dropout3d(p_dropout),
             nn.InstanceNorm3d(num_features),
-            nn.Conv3d(num_features, num_features, kernel_size=kernel_size),
+            nn.Conv3d(num_features, num_features, kernel_size=kernel_size, padding=1),
             nn.LeakyReLU()
         )
 
