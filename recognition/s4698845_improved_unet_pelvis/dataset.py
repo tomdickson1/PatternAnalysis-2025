@@ -4,6 +4,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import os
 import sys
+import torch
 
 def to_channels(arr: np.ndarray, dtype = np.uint8) -> np.ndarray :
     channels = np.unique(arr)
@@ -38,8 +39,9 @@ def load_data_3D(imageNames, normImage = False, categorical = False, dtype = np.
     # get fixed size
     num = len(imageNames)
     niftiImage = nib.load(imageNames[0])
+    # TODO: ask about this im.applyOrientation thing?
     if orient:
-        niftiImage = im.applyOrientation(niftiImage, interpolation = interp, scale =1)
+        niftiImage = niftiImage.applyOrientation(niftiImage, interpolation = interp, scale =1)
     # ~ testResultName = " oriented.nii.gz "
     # ~ niftiImage.to_filename(testResultName )
     first_case = niftiImage.get_fdata(caching = 'unchanged')
@@ -83,10 +85,38 @@ def load_data_3D(imageNames, normImage = False, categorical = False, dtype = np.
         return images, affines
     else:
         return images
-    
+
+def make_dataloaders(path: str, input_dir: str, labels_dir: str):
+    input_path = os.path.join(path, input_dir)
+    labels_path = os.path.join(path, labels_dir)
+    input_names = [os.path.join(input_path, x) for x in os.listdir(input_path)]
+    labels_names = [os.path.join(labels_path, x) for x in os.listdir(labels_path)]
+
+    inputs = load_data_3D(input_names, normImage=True)
+    labels = load_data_3D(labels_names, dtype=np.uint8)
+
+
+
 if __name__ == "__main__":
     # testing code
-    path = "Labelled_weekly_MR_images_of_the_male_pelvis-QEzDvqEq-\data\HipMRI_study_complete_release_v1\semantic_MRs_anon"
+    path = r"Labelled_weekly_MR_images_of_the_male_pelvis-QEzDvqEq-\data\HipMRI_study_complete_release_v1\semantic_labels_anon"
     names = [os.path.join(path, x) for x in os.listdir(path)]
-    res = load_data_3D(names, early_stop=True)
-    print(res.shape)
+    freqs = {}
+    for name in os.listdir(path):
+        case = int(name[5:8])
+        if case in freqs:
+            freqs[case] += 1
+        else:
+            freqs[case] = 1
+    x = []
+    y = []
+    for case, freq in freqs.items():
+        x.append(case)
+        y.append(freq)
+    plt.bar(x,y)
+    plt.xlabel("Case ID")
+    plt.ylabel("Number of datapoints")
+    plt.show()
+    # res = np.expand_dims(load_data_3D(names, early_stop=False, dtype=np.uint8),1)
+    # print(res.shape)
+    # print(np.max(res))
