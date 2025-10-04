@@ -149,11 +149,40 @@ class Improved3DUnet(nn.Module):
                 output = current_output + F.interpolate(output, current_output.shape[2:])
         
         return F.softmax(output, dim=1)
+    
+def dice_loss(predictions: torch.Tensor, labels: torch.Tensor):
+    """
+    Compute the dice loss as described in equation 1 of [1].
+    The input is taken to be of shape (B,C,D,H,W), with C being
+    the number of classes. Labels is taken to have shape (B,1,D,H,W)
+    with entries being integers from 0 to C-1, representing each class.
+    """
+    K = predictions.shape[1]
+    # squeeze to remove the channel dim (which is 1), as we will replace this
+    # with the class one-hot encoding dimension
+    one_hot_labels = F.one_hot(labels.squeeze(dim=1)).permute(0,4,1,2,3)
+    # one_hot_labels.shape == [B,C,D,H,W]
+
+    # sum over all spatial dimensions (equivalent to summing over the voxels
+    # as done in the paper)
+    numerator = torch.sum(one_hot_labels * predictions, dim=(2,3,4))
+    denominator = torch.sum(predictions, dim=(2,3,4)) + torch.sum(one_hot_labels, dim=(2,3,4))
+    
+    batches = predictions.shape[0]
+
+    # sum over all remaining dimensions, i.e. class and batches
+    return -2 / K / batches * torch.sum(numerator / denominator)
 
 
 if __name__ == "__main__":
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
-    net = Improved3DUnet(10, 16, 4).to(device)
+    classes = 10
+    net = Improved3DUnet(classes, 16, 4).to(device)
     dummy = torch.rand(1,1,256,256,128).to(device)
-    print(net(dummy).shape)
+    dummy_labels = torch.randint_like(dummy, low=0, high=classes)
+    
+    dummy_prediction = net(dummy)
+    print(dummy_prediction.shape)
+    resized_labels = F.interpolate(dummy_labels, dummy.shape[2:]).long()
+    print(dice_loss(dummy, resized_labels))
