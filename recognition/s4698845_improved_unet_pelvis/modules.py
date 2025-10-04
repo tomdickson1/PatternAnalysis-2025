@@ -15,7 +15,7 @@ import torch.nn.functional as F
 
 class ContextModule(nn.Module):
     def __init__(self, num_features, kernel_size=3, p_dropout=0.3):
-        super().__init__(ContextModule)
+        super().__init__()
 
         # as per [1], replace BatchNorm with InstanceNorm
         self.path = nn.Sequential(
@@ -34,7 +34,7 @@ class ContextModule(nn.Module):
 
 class DownBlock(nn.Module):
     def __init__(self, in_channels, out_channels, pre_kernel=3, context_kernel=3):
-        super().__init__(DownBlock)
+        super().__init__()
         self.blocks = nn.Sequential(
             nn.Conv3d(in_channels, out_channels, kernel_size=pre_kernel, stride=2),
             ContextModule(out_channels, kernel_size=context_kernel)
@@ -56,7 +56,7 @@ class UpscaleModule(nn.Module):
 
 class LocalisationModule(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3):
-        super().__init__(LocalisationModule)
+        super().__init__()
         self.blocks = nn.Sequential(
             nn.Conv3d(in_channels, in_channels, kernel_size=kernel_size),
             nn.Conv3d(in_channels, out_channels, kernel_size=1)
@@ -83,7 +83,7 @@ class UpBlock(nn.Module):
     
 class Improved3DUnet(nn.Module):
     def __init__(self, n_classes, initial_channels, depth):
-        super().__init__(Improved3DUnet)
+        super().__init__()
         self.initial_block = nn.Sequential(
             nn.Conv3d(1, initial_channels, kernel_size=3),
             ContextModule(initial_channels, kernel_size=3)
