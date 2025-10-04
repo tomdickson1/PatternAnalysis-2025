@@ -112,7 +112,6 @@ class Improved3DUnet(nn.Module):
                 self.segmentation_layers.append(seg)
                 self.add_module(f"Segmentation for UpBlock {i+1}", seg)
         
-        self.final_conv = nn.Conv3d(2*initial_channels, 2*initial_channels)
         
     def forward(self, x):
 
@@ -150,3 +149,19 @@ class Improved3DUnet(nn.Module):
                 output = current_output + F.interpolate(output, current_output.shape[2:])
         
         return F.softmax(output, dim=1)
+
+def timed(fn):
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
+    start.record()
+    result = fn()
+    end.record()
+    torch.cuda.synchronize()
+    return result, start.elapsed_time(end) / 1000
+
+if __name__ == "__main__":
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(device)
+    net = Improved3DUnet(10, 16, 4).to(device)
+    dummy = torch.rand(1,1,256,256,128).to(device)
+    print(net(dummy).shape)
