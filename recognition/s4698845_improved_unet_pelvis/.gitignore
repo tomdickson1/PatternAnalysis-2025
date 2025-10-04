@@ -1,2 +1,3 @@
 # exclude data
 Labelled_weekly_MR_images_of_the_male_pelvis-QEzDvqEq-/*
+__pycache__/**
