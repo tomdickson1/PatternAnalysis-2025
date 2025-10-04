@@ -100,8 +100,8 @@ class Improved3DUnet(nn.Module):
         self.up_blocks = []
         self.segmentation_layers = []
         for i in range(depth-1,-1,-1):
-            c_in = initial_channels * 2**i
-            c_out = c_in / 2
+            c_in = initial_channels * 2**i * 2
+            c_out = c_in // 2
             block = UpBlock(c_in, c_out)
             self.up_blocks.append(block)
             self.add_module(f"Up Block {i+1}", block)
