@@ -36,7 +36,7 @@ class DownBlock(nn.Module):
     def __init__(self, in_channels, out_channels, pre_kernel=3, context_kernel=3):
         super().__init__()
         self.blocks = nn.Sequential(
-            nn.Conv3d(in_channels, out_channels, kernel_size=pre_kernel, stride=2),
+            nn.Conv3d(in_channels, out_channels, kernel_size=pre_kernel, stride=2, padding=1),
             ContextModule(out_channels, kernel_size=context_kernel)
         )
     
@@ -48,7 +48,7 @@ class UpscaleModule(nn.Module):
         super().__init__()
         self.blocks = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            nn.Conv3d(in_channels, out_channels, kernel_size=kernel_size)
+            nn.Conv3d(in_channels, out_channels, kernel_size=kernel_size, padding=1)
         )
 
     def forward(self, x):
@@ -58,7 +58,7 @@ class LocalisationModule(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3):
         super().__init__()
         self.blocks = nn.Sequential(
-            nn.Conv3d(in_channels, in_channels, kernel_size=kernel_size),
+            nn.Conv3d(in_channels, in_channels, kernel_size=kernel_size, padding=1),
             nn.Conv3d(in_channels, out_channels, kernel_size=1)
         )
     
@@ -90,7 +90,7 @@ class Improved3DUnet(AbstractNetwork):
     def __init__(self, n_classes, initial_channels, depth):
         super().__init__()
         self.initial_block = nn.Sequential(
-            nn.Conv3d(1, initial_channels, kernel_size=3),
+            nn.Conv3d(1, initial_channels, kernel_size=3, padding=1),
             ContextModule(initial_channels, kernel_size=3)
         )
 
