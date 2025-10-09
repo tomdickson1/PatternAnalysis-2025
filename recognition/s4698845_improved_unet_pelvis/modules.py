@@ -188,7 +188,7 @@ if __name__ == "__main__":
     classes = 10
     net = Improved3DUnet(classes, 16, 4).to(device)
     print(net)
-    dummy = torch.rand(3,1,256,256,128).to(device)
+    dummy = torch.rand(1,1,256,256,128).to(device)
     dummy_labels = torch.randint_like(dummy, low=0, high=classes)
     
     dummy_prediction = net(dummy)

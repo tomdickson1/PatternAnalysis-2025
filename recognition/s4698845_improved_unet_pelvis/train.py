@@ -18,7 +18,7 @@ def train(network : AbstractNetwork, optimizer: optim.Optimizer, train_loader, v
     
     timestamp = str(time.strftime("%Y%m%d-%H%M%S"))
     writer = SummaryWriter(f'runs/{timestamp}')
-    net = network.to(device)
+    net = network.to(device).half()
     print(net)
     start_time = time.time()
     
@@ -30,19 +30,22 @@ def train(network : AbstractNetwork, optimizer: optim.Optimizer, train_loader, v
         for data in tqdm(train_loader):
             data: list[torch.Tensor]
             # get the inputs; data is a list of [inputs, labels]
-            x_real, x_seg = data[0].to(device, non_blocking=True), data[1].to(device, non_blocking=True)
+            x_real, x_seg = data[0].to(device, dtype=torch.float16), data[1].to(device)
             # zero the parameter gradients
+            print("Loaded data")
             optimizer.zero_grad()
 
             # forward + backward + optimize
             print("Input shape ", x_real.shape)
-            outputs = net(x_real)
-            # squeeze to remove the channel dimension since its length is 1
-            loss = network.loss(outputs, x_seg)
+            with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
+                outputs = net(x_real)
+                # squeeze to remove the channel dimension since its length is 1
+                loss = network.loss(outputs, x_seg)
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
             batches_done += 1
+            del x_real, x_seg, loss
         
         training_loss = running_loss / batches_done
         # scheduler.step(training_loss)
@@ -65,6 +68,7 @@ if __name__ == "__main__":
     n_classes = 6
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
-    network = Improved3DUnet(n_classes, 16, 4)
+    network = Improved3DUnet(n_classes, 16, 4).half()
+    network.compile()
     optimiser = torch.optim.Adam(network.parameters(), lr=1e-3)
     train(network, optimiser, train_loader, val_loader, 5)

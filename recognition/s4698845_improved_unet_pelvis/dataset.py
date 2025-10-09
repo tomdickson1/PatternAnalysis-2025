@@ -86,17 +86,17 @@ def load_data_3D(imageNames, normImage = False, categorical = False, dtype = np.
     else:
         return images
 
-def make_dataloaders(path: str, input_dir: str, labels_dir: str, splits: list[int], limit=None):
+def make_dataloaders(path: str, input_dir: str, labels_dir: str, splits: list[int], limit=None, extension=".nii.gz"):
     input_path = os.path.join(path, input_dir)
     labels_path = os.path.join(path, labels_dir)
     if limit is None:
         limit = len(os.listdir(input_path))
 
-    input_names = [os.path.join(input_path, x) for i, x in enumerate(os.listdir(input_path)) if i < limit]
-    labels_names = [os.path.join(labels_path, x) for i, x in enumerate(os.listdir(labels_path)) if i < limit]
+    input_names = [os.path.join(input_path, x) for i, x in enumerate(os.listdir(input_path)) if i < limit and x.endswith(extension)]
+    labels_names = [os.path.join(labels_path, x) for i, x in enumerate(os.listdir(labels_path)) if i < limit and x.endswith(extension)]
 
     # unsqueeze to add a dimension for channels
-    inputs = torch.from_numpy(load_data_3D(input_names, normImage=True)).unsqueeze(1)
+    inputs = torch.from_numpy(load_data_3D(input_names, normImage=True)).unsqueeze(1).type(torch.float16)
     
     labels = torch.from_numpy(load_data_3D(labels_names, dtype=np.uint8)).unsqueeze(1).long()
 
@@ -108,14 +108,14 @@ def make_dataloaders(path: str, input_dir: str, labels_dir: str, splits: list[in
 
     train, validation, test = torch.utils.data.random_split(all_data, splits, generator)
     batch_size = 1
-    num_workers = 0
+    num_workers = 8
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size,
                     shuffle=True, num_workers=num_workers, pin_memory=True)
     val_loader = torch.utils.data.DataLoader(validation, batch_size=batch_size,
-                    shuffle=False, num_workers=num_workers, pin_memory=True)
+                    shuffle=False, num_workers=num_workers, pin_memory=False)
     test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size,
-                    shuffle=False, num_workers=num_workers, pin_memory=True)
+                    shuffle=False, num_workers=num_workers, pin_memory=False)
     
     return train_loader, val_loader, test_loader
 
