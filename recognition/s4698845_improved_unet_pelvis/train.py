@@ -6,6 +6,7 @@ from tqdm import tqdm
 import time
 from modules import AbstractNetwork, Improved3DUnet
 from utils import get_lr
+from dataset import make_dataloaders
 
 
 def train(network : AbstractNetwork, optimizer: optim.Optimizer, train_loader, val_loader, epochs, device=None, time_limit=0):
@@ -26,9 +27,6 @@ def train(network : AbstractNetwork, optimizer: optim.Optimizer, train_loader, v
         batches_done = 0
         epoch_start = time.time()
 
-        total_XY = torch.zeros(1,4)
-        total_X = torch.zeros(1,4)
-        total_Y = torch.zeros(1,4)
         for data in tqdm(train_loader):
             data: list[torch.Tensor]
             # get the inputs; data is a list of [inputs, labels]
@@ -37,9 +35,10 @@ def train(network : AbstractNetwork, optimizer: optim.Optimizer, train_loader, v
             optimizer.zero_grad()
 
             # forward + backward + optimize
+            print("Input shape ", x_real.shape)
             outputs = net(x_real)
             # squeeze to remove the channel dimension since its length is 1
-            loss = network.loss(outputs, x_seg.squeeze())
+            loss = network.loss(outputs, x_seg)
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
@@ -50,7 +49,7 @@ def train(network : AbstractNetwork, optimizer: optim.Optimizer, train_loader, v
         current_lr = get_lr(optimizer)
         writer.add_scalar("Loss/train", training_loss, epoch)
 
-        print(f'[{epoch + 1}] loss: {training_loss:.3f}, dsc: {list(2 * total_XY / (total_X + total_Y))}, lr={current_lr} ({time.time() - epoch_start:.2f} seconds)')
+        print(f'[{epoch + 1}] loss: {training_loss:.3f}, lr={current_lr} ({time.time() - epoch_start:.2f} seconds)')
         if (time_limit > 0 and time.time() - start_time > time_limit):
             print(f"Time's up! Stopping at Epoch {epoch+1}")
             break
@@ -62,4 +61,10 @@ def train(network : AbstractNetwork, optimizer: optim.Optimizer, train_loader, v
 
 
 if __name__ == "__main__":
-    pass
+    train_loader, val_loader, test_loader = make_dataloaders("data","semantic_MRs","semantic_labels_only", [2,1,1],4)
+    n_classes = 6
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(device)
+    network = Improved3DUnet(n_classes, 16, 4)
+    optimiser = torch.optim.Adam(network.parameters(), lr=1e-3)
+    train(network, optimiser, train_loader, val_loader, 5)
