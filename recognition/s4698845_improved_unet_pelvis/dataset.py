@@ -86,20 +86,41 @@ def load_data_3D(imageNames, normImage = False, categorical = False, dtype = np.
     else:
         return images
 
-def make_dataloaders(path: str, input_dir: str, labels_dir: str):
+def make_dataloaders(path: str, input_dir: str, labels_dir: str, splits: list[int], limit=None):
     input_path = os.path.join(path, input_dir)
     labels_path = os.path.join(path, labels_dir)
-    input_names = [os.path.join(input_path, x) for x in os.listdir(input_path)]
-    labels_names = [os.path.join(labels_path, x) for x in os.listdir(labels_path)]
+    if limit is None:
+        limit = len(os.listdir(input_path))
+
+    input_names = [os.path.join(input_path, x) for i, x in enumerate(os.listdir(input_path)) if i < limit]
+    labels_names = [os.path.join(labels_path, x) for i, x in enumerate(os.listdir(labels_path)) if i < limit]
 
     inputs = load_data_3D(input_names, normImage=True)
     labels = load_data_3D(labels_names, dtype=np.uint8)
 
+    # use a fixed seed so each run is the same
+    generator = torch.Generator().manual_seed(42)
+
+    all_data = torch.utils.data.TensorDataset(inputs, labels)
+
+    train, validation, test = torch.utils.data.random_split(all_data, splits, generator)
+    batch_size = 1
+    num_workers = 0
+
+    train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size,
+                    shuffle=True, num_workers=num_workers, pin_memory=True)
+    val_loader = torch.utils.data.DataLoader(validation, batch_size=batch_size,
+                    shuffle=False, num_workers=num_workers, pin_memory=True)
+    test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size,
+                    shuffle=False, num_workers=num_workers, pin_memory=True)
+    
+    return train_loader, val_loader, test_loader
 
 
 if __name__ == "__main__":
     # testing code
     path = r"Labelled_weekly_MR_images_of_the_male_pelvis-QEzDvqEq-\data\HipMRI_study_complete_release_v1\semantic_labels_anon"
+    path = r"data\semantic_labels_only"
     names = [os.path.join(path, x) for x in os.listdir(path)]
     freqs = {}
     for name in os.listdir(path):
