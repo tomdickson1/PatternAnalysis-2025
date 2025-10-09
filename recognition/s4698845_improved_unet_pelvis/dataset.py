@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import os
 import sys
 import torch
+import torchio as tio
 
 def to_channels(arr: np.ndarray, dtype = np.uint8) -> np.ndarray :
     channels = np.unique(arr)
@@ -92,29 +93,40 @@ def make_dataloaders(path: str, input_dir: str, labels_dir: str, splits: list[in
     if limit is None:
         limit = len(os.listdir(input_path))
 
-    input_names = [os.path.join(input_path, x) for i, x in enumerate(os.listdir(input_path)) if i < limit and x.endswith(extension)]
-    labels_names = [os.path.join(labels_path, x) for i, x in enumerate(os.listdir(labels_path)) if i < limit and x.endswith(extension)]
+    input_names = [os.path.join(input_path, x) for i, x in enumerate(sorted(os.listdir(input_path))) if i < limit and x.endswith(extension)]
+    labels_names = [os.path.join(labels_path, x) for i, x in enumerate(sorted(os.listdir(labels_path))) if i < limit and x.endswith(extension)]
 
     # unsqueeze to add a dimension for channels
-    inputs = torch.from_numpy(load_data_3D(input_names, normImage=True)).unsqueeze(1).type(torch.float16)
-    
-    labels = torch.from_numpy(load_data_3D(labels_names, dtype=np.uint8)).unsqueeze(1).long()
+    subjects = [
+        tio.Subject(
+            inputs=tio.ScalarImage(input_names[i]),
+            labels=tio.LabelMap(labels_names[i])
+        )
+        for i in range(len(input_names))
+    ]
 
+    transforms = [
+        tio.RescaleIntensity(out_min_max=(0, 1)),
+        tio.OneOf({
+                tio.RandomAffine(): 0.8,
+                tio.RandomElasticDeformation(): 0.2
+            },
+            p=0.75
+        )
+    ]
     # use a fixed seed so each run is the same
+    all_data = tio.SubjectsDataset(subjects, tio.Compose(transforms))
     generator = torch.Generator().manual_seed(42)
-    all_data = torch.utils.data.TensorDataset(inputs, labels)
-    print("Input Shape", inputs.shape)
-    print("Label shape", labels.shape)
-
     train, validation, test = torch.utils.data.random_split(all_data, splits, generator)
-    batch_size = 1
-    num_workers = 8
 
-    train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size,
-                    shuffle=True, num_workers=num_workers, pin_memory=True)
-    val_loader = torch.utils.data.DataLoader(validation, batch_size=batch_size,
+    batch_size = 1
+    num_workers = 2
+
+    train_loader = tio.SubjectsLoader(train, batch_size=batch_size,
+                    shuffle=True, num_workers=num_workers, pin_memory=True, prefetch_factor=2)
+    val_loader = tio.SubjectsLoader(validation, batch_size=batch_size,
                     shuffle=False, num_workers=num_workers, pin_memory=False)
-    test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size,
+    test_loader = tio.SubjectsLoader(test, batch_size=batch_size,
                     shuffle=False, num_workers=num_workers, pin_memory=False)
     
     return train_loader, val_loader, test_loader
@@ -124,23 +136,31 @@ if __name__ == "__main__":
     # testing code
     path = r"Labelled_weekly_MR_images_of_the_male_pelvis-QEzDvqEq-\data\HipMRI_study_complete_release_v1\semantic_labels_anon"
     path = r"data\semantic_labels_only"
-    names = [os.path.join(path, x) for x in os.listdir(path)]
-    freqs = {}
-    for name in os.listdir(path):
-        case = int(name[5:8])
-        if case in freqs:
-            freqs[case] += 1
-        else:
-            freqs[case] = 1
-    x = []
-    y = []
-    for case, freq in freqs.items():
-        x.append(case)
-        y.append(freq)
-    plt.bar(x,y)
-    plt.xlabel("Case ID")
-    plt.ylabel("Number of datapoints")
-    plt.show()
+
+    train_loader, val_loader, test_loader = make_dataloaders("data","semantic_MRs","semantic_labels_only", [1,2,1],4)
+    for number, data in enumerate(train_loader):
+        image: tio.Image = data["inputs"][tio.DATA].squeeze(1)
+        labels: tio.Image = data["labels"][tio.DATA].squeeze(1)
+        print(image.shape)
+        tio.Image(tensor=image).to_gif(2, 5, f"images/{number}-input.gif")
+        tio.Image(tensor=labels).to_gif(2, 5, f"images/{number}-labels.gif")
+    # names = [os.path.join(path, x) for x in os.listdir(path)]
+    # freqs = {}
+    # for name in os.listdir(path):
+    #     case = int(name[5:8])
+    #     if case in freqs:
+    #         freqs[case] += 1
+    #     else:
+    #         freqs[case] = 1
+    # x = []
+    # y = []
+    # for case, freq in freqs.items():
+    #     x.append(case)
+    #     y.append(freq)
+    # plt.bar(x,y)
+    # plt.xlabel("Case ID")
+    # plt.ylabel("Number of datapoints")
+    # plt.show()
     # res = np.expand_dims(load_data_3D(names, early_stop=False, dtype=np.uint8),1)
     # print(res.shape)
     # print(np.max(res))
