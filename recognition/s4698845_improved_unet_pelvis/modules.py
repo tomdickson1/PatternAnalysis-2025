@@ -185,10 +185,12 @@ if __name__ == "__main__":
     print(device)
     classes = 10
     net = Improved3DUnet(classes, 16, 4).to(device)
+    print(net)
     dummy = torch.rand(1,1,256,256,128).to(device)
     dummy_labels = torch.randint_like(dummy, low=0, high=classes)
     
     dummy_prediction = net(dummy)
     print(dummy_prediction.shape)
+    print(dummy_labels.shape)
     resized_labels = F.interpolate(dummy_labels, dummy.shape[2:]).long()
-    print(dice_loss(dummy, resized_labels))
+    print(net.loss(dummy, resized_labels))
