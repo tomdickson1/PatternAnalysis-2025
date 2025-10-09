@@ -95,13 +95,16 @@ def make_dataloaders(path: str, input_dir: str, labels_dir: str, splits: list[in
     input_names = [os.path.join(input_path, x) for i, x in enumerate(os.listdir(input_path)) if i < limit]
     labels_names = [os.path.join(labels_path, x) for i, x in enumerate(os.listdir(labels_path)) if i < limit]
 
-    inputs = load_data_3D(input_names, normImage=True)
-    labels = load_data_3D(labels_names, dtype=np.uint8)
+    # unsqueeze to add a dimension for channels
+    inputs = torch.from_numpy(load_data_3D(input_names, normImage=True)).unsqueeze(1)
+    
+    labels = torch.from_numpy(load_data_3D(labels_names, dtype=np.uint8)).unsqueeze(1).long()
 
     # use a fixed seed so each run is the same
     generator = torch.Generator().manual_seed(42)
-
     all_data = torch.utils.data.TensorDataset(inputs, labels)
+    print("Input Shape", inputs.shape)
+    print("Label shape", labels.shape)
 
     train, validation, test = torch.utils.data.random_split(all_data, splits, generator)
     batch_size = 1
