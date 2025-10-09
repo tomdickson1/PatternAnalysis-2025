@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class ContextModule(nn.Module):
-    def __init__(self, num_features, kernel_size=3, p_dropout=0.3):
+    def __init__(self, num_features, kernel_size=3, p_dropout=0.0):
         super().__init__()
 
         # as per [1], replace BatchNorm with InstanceNorm
@@ -88,9 +88,13 @@ class AbstractNetwork(nn.Module):
     def loss(predictions: torch.Tensor, labels: torch.Tensor):
         pass
 
+    def metric(self, outputs: torch.Tensor, labels: torch.Tensor):
+        pass
+
 class Improved3DUnet(AbstractNetwork):
     def __init__(self, n_classes, initial_channels, depth):
         super().__init__()
+        self.n_classes = n_classes
         self.initial_block = nn.Sequential(
             nn.Conv3d(1, initial_channels, kernel_size=3, padding=1),
             ContextModule(initial_channels, kernel_size=3)
@@ -180,6 +184,18 @@ class Improved3DUnet(AbstractNetwork):
 
         # sum over all remaining dimensions, i.e. class and batches
         return -2 / K / batches * torch.sum(numerator / denominator)
+    
+    def metric(self, outputs: torch.Tensor, labels: torch.Tensor):
+        predicted_classes = torch.argmax(outputs, dim=1)
+
+        # the one hots have the class as the last dimension
+        one_hot_output = F.one_hot(predicted_classes, self.n_classes)
+        one_hot_true = F.one_hot(labels.squeeze(), self.n_classes)
+
+        XY = (one_hot_output * one_hot_true).sum(dim=(0,1,2,3))
+        X = one_hot_true.sum(dim=(0,1,2,3))
+        Y = one_hot_output.sum(dim=(0,1,2,3))
+        return 2 * XY / (X + Y)
 
 
 if __name__ == "__main__":
