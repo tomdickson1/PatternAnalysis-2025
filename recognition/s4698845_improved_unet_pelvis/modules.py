@@ -84,6 +84,7 @@ class UpBlock(nn.Module):
         return res
 
 class AbstractNetwork(nn.Module):
+    n_classes: int
     @staticmethod
     def loss(predictions: torch.Tensor, labels: torch.Tensor):
         pass
@@ -195,7 +196,7 @@ class Improved3DUnet(AbstractNetwork):
         XY = (one_hot_output * one_hot_true).sum(dim=(0,1,2,3))
         X = one_hot_true.sum(dim=(0,1,2,3))
         Y = one_hot_output.sum(dim=(0,1,2,3))
-        return 2 * XY / (X + Y)
+        return XY, X, Y
 
 
 if __name__ == "__main__":
