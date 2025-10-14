@@ -6,7 +6,7 @@ from tqdm import tqdm
 import time
 from modules import AbstractNetwork, Improved3DUnet
 from utils import get_lr
-from dataset import make_dataloaders
+from dataset import make_dataloaders, TRAIN_IDS, VAL_IDS, TEST_IDS
 import torchio as tio
 
 
@@ -100,13 +100,17 @@ def test(net : AbstractNetwork, loader, device, writer: SummaryWriter=None, epoc
 
 
 def main():
-    train_loader, val_loader, test_loader = make_dataloaders("data","semantic_MRs","semantic_labels_only", [3,2,1],6)
+    # TRAIN_IDS = {'K019'}
+    # VAL_IDS = {'W029'}
+    # TEST_IDS = {'S028'}
+    train_loader, val_loader, test_loader = make_dataloaders("data","semantic_MRs","semantic_labels_only", TRAIN_IDS, VAL_IDS, TEST_IDS)
     n_classes = 6
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
     network = Improved3DUnet(n_classes, 16, 4).to(device)
     optimiser = torch.optim.Adam(network.parameters(), lr=5e-5, eps=1e-6)
-    train(network, optimiser, train_loader, val_loader, 50)
+    # test(network, val_loader, device)
+    train(network, optimiser, train_loader, val_loader, 24, device)
 
     # network.load_state_dict(torch.load("models/20251009-185232.model"))
     # test(network, train_loader)

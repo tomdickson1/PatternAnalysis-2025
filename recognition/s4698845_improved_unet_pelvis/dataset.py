@@ -87,7 +87,86 @@ def load_data_3D(imageNames, normImage = False, categorical = False, dtype = np.
     else:
         return images
 
-def make_dataloaders(path: str, input_dir: str, labels_dir: str, splits: list[int], limit=None, extension=".nii.gz"):
+def find_frequencies(directory: str, max_freq=8):
+    names = os.listdir(directory)
+    case_items: dict[str, list] = {}
+    for name in names:
+        # case id is the first 4 characters, e.g. "B006"
+        identifier = name[:4]
+        if identifier in case_items:
+            case_items[identifier].append(name)
+        else:
+            case_items[identifier] = [name]
+    
+    freq_bins = [0] * max_freq
+    freq_to_ids = {}
+    for identifier, names in case_items.items():
+        freq = len(names)
+        freq_bins[freq-1] += 1
+        if freq in freq_to_ids:
+            freq_to_ids[freq] += [identifier]
+        else:
+            freq_to_ids[freq] = [identifier]
+
+    print(list(range(1,max_freq+1)))
+    print(freq_bins)
+
+    # for this data, we get
+    # [1, 2, 3, 4, 5, 6, 7, 8]
+    # [11, 1, 0, 1, 1, 1, 1, 22]
+    # as the frequencies.
+    # therefore, choose a 8:1:2 train-val-test split, since
+    # that works nicely for 11 and 22
+    # there are then 24 (2+4+5+6+7) images remaining
+    # so we roughly want
+    # 8/11 * 24 = 17.45 images for training
+    # 1/11 * 24 = 2.18 for validation
+    # 2/11 * 24 = 4.36 for testing
+    # therefore, give the 4 person to test, the 2 person to validation
+    # and the rest (5,6,7) go to training
+
+    torch.manual_seed(0)
+    train_ids = []
+    val_ids = []
+    test_ids = []
+    
+    ratio_target = [8/11,1/11,2/11]
+    # do single image patients
+    train, val, test = torch.utils.data.random_split(freq_to_ids[1], ratio_target)
+    train_ids += list(train)
+    val_ids += list(val)
+    test_ids += list(test)
+    # same for full image patients
+    # multiply by 2 because there are 22
+    train, val, test = torch.utils.data.random_split(freq_to_ids[max_freq], ratio_target)
+    train_ids += list(train)
+    val_ids += list(val)
+    test_ids += list(test)
+
+    # give patient with 2 images to validation
+    val_ids += freq_to_ids[2]
+
+    # give patient with 4 images to test
+    test_ids += freq_to_ids[4]
+
+    for f in [5,6,7]:
+        train_ids += freq_to_ids[f]
+    
+    print("Train")
+    print(len(train_ids))
+    print(sum(len(case_items[x]) for x in train_ids))
+    print("Val")
+    print(len(val_ids))
+    print(sum(len(case_items[x]) for x in val_ids))
+    print("Test")
+    print(len(test_ids))
+    print(sum(len(case_items[x]) for x in test_ids))
+    return set(train_ids), set(val_ids), set(test_ids)
+
+    
+
+def make_dataloaders(path: str, input_dir: str, labels_dir: str, train_ids: set,
+                     val_ids: set, test_ids: set, limit=None, extension=".nii.gz"):
     input_path = os.path.join(path, input_dir)
     labels_path = os.path.join(path, labels_dir)
     if limit is None:
@@ -96,16 +175,25 @@ def make_dataloaders(path: str, input_dir: str, labels_dir: str, splits: list[in
     input_names = [os.path.join(input_path, x) for i, x in enumerate(sorted(os.listdir(input_path))) if i < limit and x.endswith(extension)]
     labels_names = [os.path.join(labels_path, x) for i, x in enumerate(sorted(os.listdir(labels_path))) if i < limit and x.endswith(extension)]
 
-    # unsqueeze to add a dimension for channels
-    subjects = [
-        tio.Subject(
+    train_subjects = []
+    val_subjects = []
+    test_subjects = []
+    for i in range(len(input_names)):
+        subject = tio.Subject(
             inputs=tio.ScalarImage(input_names[i]),
             labels=tio.LabelMap(labels_names[i])
         )
-        for i in range(len(input_names))
-    ]
+        identifier = os.path.basename(input_names[i])[:4]
+        if identifier in train_ids:
+            train_subjects.append(subject)
+        elif identifier in val_ids:
+            val_subjects.append(subject)
+        elif identifier in test_ids:
+            test_subjects.append(subject)
+        else:
+            print("Warning: found a case that wasn't allocated to any set")
 
-    transforms = [
+    train_transforms = [
         tio.RescaleIntensity(out_min_max=(0, 1)),
         tio.OneOf({
                 tio.RandomAffine(): 0.8,
@@ -114,11 +202,15 @@ def make_dataloaders(path: str, input_dir: str, labels_dir: str, splits: list[in
             p=0.75
         )
     ]
-    # use a fixed seed so each run is the same
-    all_data = tio.SubjectsDataset(subjects, tio.Compose(transforms))
-    generator = torch.Generator().manual_seed(42)
-    train, validation, test = torch.utils.data.random_split(all_data, splits, generator)
 
+    test_transforms = [
+        tio.RescaleIntensity(out_min_max=(0, 1))
+    ]
+    # use a fixed seed so each run is the same
+    train = tio.SubjectsDataset(train_subjects, tio.Compose(train_transforms))
+    validation = tio.SubjectsDataset(val_subjects, tio.Compose(test_transforms))
+    test = tio.SubjectsDataset(test_subjects, tio.Compose(test_transforms))
+    
     batch_size = 1
     num_workers = 2
 
@@ -131,19 +223,25 @@ def make_dataloaders(path: str, input_dir: str, labels_dir: str, splits: list[in
     
     return train_loader, val_loader, test_loader
 
+# hardcode these value for reproduceability between different machines
+TRAIN_IDS = {'K019', 'M013', 'N010', 'R016', 'K042', 'M023', 'K008', 'R024', 'H017', 'V027', 'T014', 'O025', 'H007', 'M015', 'B037', 'R039', 'B040', 'K018', 'M004', 'J026', 'D031', 'S022', 'W041', 'J005', 'M030', 'S035', 'B038'}
+VAL_IDS = {'W029', 'T009', 'B006', 'S033'}
+TEST_IDS = {'S028', 'G021', 'M036', 'L011', 'W012', 'M020', 'C032'}
 
 if __name__ == "__main__":
     # testing code
-    path = r"Labelled_weekly_MR_images_of_the_male_pelvis-QEzDvqEq-\data\HipMRI_study_complete_release_v1\semantic_labels_anon"
     path = r"data\semantic_labels_only"
-
-    train_loader, val_loader, test_loader = make_dataloaders("data","semantic_MRs","semantic_labels_only", [1,2,1],4)
+    train_ids, val_ids, test_ids = find_frequencies(path)
+    # these 'should' be the same as TRAIN_IDS, VAL_IDS, TEST_IDS, except
+    # for differences in RNG between machines
+    train_loader, val_loader, test_loader = make_dataloaders("data","semantic_MRs","semantic_labels_only", train_ids, val_ids, test_ids)
     for number, data in enumerate(train_loader):
         image: tio.Image = data["inputs"][tio.DATA].squeeze(1)
         labels: tio.Image = data["labels"][tio.DATA].squeeze(1)
-        print(image.shape)
-        tio.Image(tensor=image).to_gif(2, 5, f"images/{number}-input.gif")
-        tio.Image(tensor=labels).to_gif(2, 5, f"images/{number}-labels.gif")
+        tio.ScalarImage(tensor=image).to_gif(2, 5, f"images/{number}-input.gif")
+        tio.LabelMap(tensor=labels).to_gif(2, 5, f"images/{number}-labels.gif")
+        print(labels.data.unique())
+        exit()
     # names = [os.path.join(path, x) for x in os.listdir(path)]
     # freqs = {}
     # for name in os.listdir(path):
