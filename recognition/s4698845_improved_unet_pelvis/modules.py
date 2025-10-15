@@ -179,7 +179,9 @@ class Improved3DUnet(AbstractNetwork):
         # sum over all spatial dimensions (equivalent to summing over the voxels
         # as done in the paper)
         numerator = torch.sum(one_hot_labels * predictions, dim=(2,3,4))
-        denominator = torch.sum(predictions, dim=(2,3,4)) + torch.sum(one_hot_labels, dim=(2,3,4))
+        X = torch.sum(predictions, dim=(2,3,4))
+        Y = torch.sum(one_hot_labels, dim=(2,3,4))
+        denominator = X + Y
         
         batches = predictions.shape[0]
 
