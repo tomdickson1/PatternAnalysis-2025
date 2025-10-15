@@ -191,7 +191,7 @@ class Improved3DUnet(AbstractNetwork):
 
         # the one hots have the class as the last dimension
         one_hot_output = F.one_hot(predicted_classes, self.n_classes)
-        one_hot_true = F.one_hot(labels.squeeze(), self.n_classes)
+        one_hot_true = F.one_hot(labels.squeeze(dim=1), self.n_classes)
 
         XY = (one_hot_output * one_hot_true).sum(dim=(0,1,2,3))
         X = one_hot_true.sum(dim=(0,1,2,3))
