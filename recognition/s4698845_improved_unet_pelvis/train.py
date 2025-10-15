@@ -8,6 +8,7 @@ from modules import AbstractNetwork, Improved3DUnet
 from utils import get_lr
 from dataset import make_dataloaders, TRAIN_IDS, VAL_IDS, TEST_IDS
 import torchio as tio
+import argparse
 
 
 def train(net: AbstractNetwork, optimiser: optim.Optimizer, train_loader, val_loader, epochs, device, val_check_factor=2, time_limit=0):
@@ -105,16 +106,28 @@ def main():
     # TRAIN_IDS = {'K019'}
     # VAL_IDS = {'W029'}
     # TEST_IDS = {'S028'}
+    parser = argparse.ArgumentParser(
+                    prog='train.py',
+                    description='trains the 3D Improved UNet Model',
+                    )
+    parser.add_argument('--test', action='store_true')
+    parser.add_argument('--prev')
+    args = parser.parse_args()
     train_loader, val_loader, test_loader = make_dataloaders("data","semantic_MRs","semantic_labels_only", TRAIN_IDS, VAL_IDS, TEST_IDS)
+        
     n_classes = 6
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
     network = Improved3DUnet(n_classes, 16, 4).to(device)
     optimiser = torch.optim.Adam(network.parameters(), lr=5e-5, eps=1e-6)
-    # test(network, val_loader, device)
-    train(network, optimiser, train_loader, val_loader, 24, device)
+    if args.prev:
+        network.load_state_dict(torch.load(f"models/{args.prev}.model"))
+        optimiser.load_state_dict(torch.load(f"models/{args.prev}.optim"))
+    if args.test:
+        test(network, val_loader, device)
+    else:
+        train(network, optimiser, train_loader, val_loader, 24, device)
 
-    # network.load_state_dict(torch.load("models/20251009-185232.model"))
     # test(network, train_loader)
 
 if __name__ == "__main__":
