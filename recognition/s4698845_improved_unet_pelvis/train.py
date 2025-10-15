@@ -74,6 +74,7 @@ def test(net : AbstractNetwork, loader, device, writer: SummaryWriter=None, epoc
         running_xy = torch.zeros((1, net.n_classes), device=device)
         running_x = torch.zeros((1, net.n_classes), device=device)
         running_y = torch.zeros((1, net.n_classes), device=device)
+        running_loss = 0.0
         for data in tqdm(loader):
             data: list[torch.Tensor]
             inputs: torch.Tensor = data["inputs"][tio.DATA].half().to(device)
@@ -82,7 +83,7 @@ def test(net : AbstractNetwork, loader, device, writer: SummaryWriter=None, epoc
             with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
                 outputs = net(inputs)
                 xy, x, y = net.metric(outputs, labels)
-
+                running_loss += net.loss(outputs, labels).item()
             running_x += x 
             running_y += y 
             running_xy += xy 
@@ -94,6 +95,7 @@ def test(net : AbstractNetwork, loader, device, writer: SummaryWriter=None, epoc
     if writer:
         writer.add_scalars("dice_score/val", {f"class_{i}": x.detach().cpu().item() for i,x in enumerate(dice_score)}, epoch)
         writer.add_scalars("iou/val", {f"class_{i}": x.detach().cpu().item() for i, x in enumerate(iou)}, epoch)
+        writer.add_scalars("dice_loss/val", {f"class_{i}": x.detach().cpu().item() for i, x in enumerate(iou)}, epoch)
 
     # switch back to training mode to enable dropout
     net.train()
