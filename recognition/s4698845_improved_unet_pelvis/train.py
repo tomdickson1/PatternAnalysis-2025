@@ -10,7 +10,6 @@ from dataset import make_dataloaders, TRAIN_IDS, VAL_IDS, TEST_IDS
 import torchio as tio
 import argparse
 
-
 def train(net: AbstractNetwork, optimiser: optim.Optimizer, train_loader, val_loader, epochs, device, val_check_factor=2, time_limit=0):
     """Perform training with given epochs and time limit.
     If specified, restart training from previous run.
@@ -112,6 +111,7 @@ def main():
                     )
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--prev')
+    parser.add_argument('--epochs')
     args = parser.parse_args()
     train_loader, val_loader, test_loader = make_dataloaders("data","semantic_MRs","semantic_labels_only", TRAIN_IDS, VAL_IDS, TEST_IDS)
         
@@ -126,7 +126,12 @@ def main():
     if args.test:
         test(network, val_loader, device)
     else:
-        train(network, optimiser, train_loader, val_loader, 24, device)
+        try:
+            epochs = int(args.epochs)
+        except:
+            print("Invalid epochs specification!")
+            exit()
+        train(network, optimiser, train_loader, val_loader, epochs, device)
 
     # test(network, train_loader)
 
