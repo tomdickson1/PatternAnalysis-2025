@@ -119,7 +119,7 @@ def main():
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
     network = Improved3DUnet(n_classes, 16, 4).to(device)
-    optimiser = torch.optim.Adam(network.parameters(), lr=5e-5, eps=1e-6)
+    optimiser = torch.optim.Adam(network.parameters(), lr=7.5e-5, eps=1e-6)
     if args.prev:
         network.load_state_dict(torch.load(f"models/{args.prev}.model"))
         optimiser.load_state_dict(torch.load(f"models/{args.prev}.optim"))
