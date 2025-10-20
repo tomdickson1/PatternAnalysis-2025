@@ -46,7 +46,7 @@ def train(net: AbstractNetwork, optimiser: optim.Optimizer, train_loader, val_lo
             scaler.update()
             running_loss += loss.item()
             batches_done += 1
-            del inputs, labels, loss
+            del inputs, labels, loss, outputs
         
         training_loss = running_loss / batches_done
         # scheduler.step(training_loss)
