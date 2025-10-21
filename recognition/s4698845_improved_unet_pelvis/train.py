@@ -112,8 +112,12 @@ def main():
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--prev')
     parser.add_argument('--epochs')
+    parser.add_argument('--data')
     args = parser.parse_args()
-    train_loader, val_loader, test_loader = make_dataloaders("data","semantic_MRs","semantic_labels_only", TRAIN_IDS, VAL_IDS, TEST_IDS)
+    data_folder = "data"
+    if args.data:
+        data_folder = args.data
+    train_loader, val_loader, test_loader = make_dataloaders(data_folder,"semantic_MRs","semantic_labels_only", TRAIN_IDS, VAL_IDS, TEST_IDS)
         
     n_classes = 6
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
