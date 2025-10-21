@@ -166,7 +166,7 @@ def find_frequencies(directory: str, max_freq=8):
     
 
 def make_dataloaders(path: str, input_dir: str, labels_dir: str, train_ids: set,
-                     val_ids: set, test_ids: set, limit=None, extension=".nii.gz"):
+                     val_ids: set, test_ids: set, limit=None, extension=".nii.gz", batch_size=1):
     input_path = os.path.join(path, input_dir)
     labels_path = os.path.join(path, labels_dir)
     if limit is None:
@@ -211,7 +211,6 @@ def make_dataloaders(path: str, input_dir: str, labels_dir: str, train_ids: set,
     validation = tio.SubjectsDataset(val_subjects, tio.Compose(test_transforms))
     test = tio.SubjectsDataset(test_subjects, tio.Compose(test_transforms))
     
-    batch_size = 1
     num_workers = 2
 
     train_loader = tio.SubjectsLoader(train, batch_size=batch_size,
