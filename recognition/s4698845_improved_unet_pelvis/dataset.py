@@ -215,11 +215,11 @@ def make_dataloaders(path: str, input_dir: str, labels_dir: str, train_ids: set,
     num_workers = 2
 
     train_loader = tio.SubjectsLoader(train, batch_size=batch_size,
-                    shuffle=True, num_workers=num_workers, pin_memory=True, prefetch_factor=2)
+                    shuffle=True, num_workers=num_workers, pin_memory=True, prefetch_factor=2 if num_workers > 0 else None, persistent_workers=True)
     val_loader = tio.SubjectsLoader(validation, batch_size=batch_size,
-                    shuffle=False, num_workers=num_workers, pin_memory=False)
+                    shuffle=False, num_workers=num_workers, pin_memory=False, persistent_workers=True)
     test_loader = tio.SubjectsLoader(test, batch_size=batch_size,
-                    shuffle=False, num_workers=num_workers, pin_memory=False)
+                    shuffle=False, num_workers=num_workers, pin_memory=False, persistent_workers=True)
     
     return train_loader, val_loader, test_loader
 
