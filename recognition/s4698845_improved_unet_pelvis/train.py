@@ -110,6 +110,7 @@ def main():
                     description='trains the 3D Improved UNet Model',
                     )
     parser.add_argument('--test', action='store_true')
+    parser.add_argument('--compile', action='store_true')
     parser.add_argument('--prev')
     parser.add_argument('--epochs')
     parser.add_argument('--data')
@@ -127,6 +128,10 @@ def main():
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
     network = Improved3DUnet(n_classes, 16, 4).to(device)
+    if args.compile:
+        net_to_use = torch.compile(network)
+    else:
+        net_to_use = network
     optimiser = torch.optim.Adam(network.parameters(), lr=5e-5, eps=1e-6)
     if args.prev:
         network.load_state_dict(torch.load(f"models/{args.prev}.model"))
@@ -139,7 +144,7 @@ def main():
         except:
             print("Invalid epochs specification!")
             exit()
-        train(network, optimiser, train_loader, val_loader, epochs, device)
+        train(network, optimiser, train_loader, val_loader, epochs, device, val_check_factor=1)
 
     # test(network, train_loader)
 
