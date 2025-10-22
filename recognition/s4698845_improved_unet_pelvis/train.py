@@ -17,7 +17,7 @@ def train(net: AbstractNetwork, optimiser: optim.Optimizer, train_loader, val_lo
     timestamp = str(time.strftime("%Y%m%d-%H%M%S"))
     writer = SummaryWriter(f'runs/{timestamp}')
     print(net)
-    start_time = time.time()
+    print(f"Started training at {timestamp}")
     scaler = torch.amp.GradScaler("cuda")
     
     for epoch in range(epochs):  # loop over the dataset multiple times
