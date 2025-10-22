@@ -95,7 +95,7 @@ def test(net : AbstractNetwork, loader, device, writer: SummaryWriter=None, epoc
     if writer:
         writer.add_scalars("dice_score/val", {f"class_{i}": x.detach().cpu().item() for i,x in enumerate(dice_score)}, epoch)
         writer.add_scalars("iou/val", {f"class_{i}": x.detach().cpu().item() for i, x in enumerate(iou)}, epoch)
-        writer.add_scalars("dice_loss/val", {f"class_{i}": x.detach().cpu().item() for i, x in enumerate(iou)}, epoch)
+        writer.add_scalar("dice_loss/val", running_loss / len(loader), epoch)
 
     # switch back to training mode to enable dropout
     net.train()
