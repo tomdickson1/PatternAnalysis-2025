@@ -113,7 +113,7 @@ def main():
     parser.add_argument('--prev')
     parser.add_argument('--epochs')
     parser.add_argument('--data')
-    parser.add_argument('--batch', default=2)
+    parser.add_argument('--batch', default=1)
     args = parser.parse_args()
     data_folder = "data"
     if args.data:
@@ -125,7 +125,6 @@ def main():
         
     n_classes = 6
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(device)
     network = Improved3DUnet(n_classes, 16, 4).to(device)
     optimiser = torch.optim.Adam(network.parameters(), lr=5e-5, eps=1e-6)
     if args.prev:
