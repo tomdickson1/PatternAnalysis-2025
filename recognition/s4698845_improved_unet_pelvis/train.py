@@ -17,7 +17,7 @@ def train(net: AbstractNetwork, optimiser: optim.Optimizer, train_loader, val_lo
     timestamp = str(time.strftime("%Y%m%d-%H%M%S"))
     writer = SummaryWriter(f'runs/{timestamp}')
     print(net)
-    start_time = time.time()
+    print(f"Started training at {timestamp}")
     scaler = torch.amp.GradScaler("cuda")
     
     for epoch in range(epochs):  # loop over the dataset multiple times
@@ -95,7 +95,7 @@ def test(net : AbstractNetwork, loader, device, writer: SummaryWriter=None, epoc
     if writer:
         writer.add_scalars("dice_score/val", {f"class_{i}": x.detach().cpu().item() for i,x in enumerate(dice_score)}, epoch)
         writer.add_scalars("iou/val", {f"class_{i}": x.detach().cpu().item() for i, x in enumerate(iou)}, epoch)
-        writer.add_scalars("dice_loss/val", {f"class_{i}": x.detach().cpu().item() for i, x in enumerate(iou)}, epoch)
+        writer.add_scalar("dice_loss/val", running_loss / len(loader), epoch)
 
     # switch back to training mode to enable dropout
     net.train()
@@ -114,7 +114,7 @@ def main():
     parser.add_argument('--prev')
     parser.add_argument('--epochs')
     parser.add_argument('--data')
-    parser.add_argument('--batch', default=2)
+    parser.add_argument('--batch', default=1)
     args = parser.parse_args()
     data_folder = "data"
     if args.data:
@@ -126,7 +126,6 @@ def main():
         
     n_classes = 6
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(device)
     network = Improved3DUnet(n_classes, 16, 4).to(device)
     if args.compile:
         net_to_use = torch.compile(network)
@@ -137,7 +136,7 @@ def main():
         network.load_state_dict(torch.load(f"models/{args.prev}.model"))
         optimiser.load_state_dict(torch.load(f"models/{args.prev}.optim"))
     if args.test:
-        test(network, val_loader, device)
+        test(network, test_loader, device)
     else:
         try:
             epochs = int(args.epochs)
