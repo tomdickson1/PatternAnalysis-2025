@@ -131,7 +131,7 @@ def main():
         network.load_state_dict(torch.load(f"models/{args.prev}.model"))
         optimiser.load_state_dict(torch.load(f"models/{args.prev}.optim"))
     if args.test:
-        test(network, val_loader, device)
+        test(network, test_loader, device)
     else:
         try:
             epochs = int(args.epochs)
