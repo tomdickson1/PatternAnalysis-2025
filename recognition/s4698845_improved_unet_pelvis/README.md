@@ -2,6 +2,11 @@
 
 The files contained in this directory implement the Improved 3D UNet from [reference], and apply it to segment the pelvis dataset from [link].
 
+| Input | Ground Truth | Generated Segmentation |
+| :---: | :---: | :---: |
+| ![](images/test-0-input.gif)  | ![](images/test-0-labels.gif) | ![](images/test-0-predicted.gif) |
+
+
 ## Instructions/dependencies
 
 ### Windows
