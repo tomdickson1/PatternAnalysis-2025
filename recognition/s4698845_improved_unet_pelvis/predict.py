@@ -42,12 +42,12 @@ def read_run(timestamp: str):
         scalars = mux.Scalars(class_run, "dice_score/val")
         x = [e.step for e in scalars]
         y = [e.value for e in scalars]
-        print(y)
         plt.plot(x, y, label=class_run)
     plt.grid()
     plt.legend()
     plt.xlabel("Epoch")
     plt.ylabel("Dice Score")
+    plt.savefig("images/validation_dice_scores.png")
     
     # IOU PLOT
     plt.figure()
@@ -55,12 +55,12 @@ def read_run(timestamp: str):
         scalars = mux.Scalars(class_run, "iou/val")
         x = [e.step for e in scalars]
         y = [e.value for e in scalars]
-        print(y)
         plt.plot(x, y, label=class_run)
     plt.grid()
     plt.legend()
     plt.xlabel("Epoch")
     plt.ylabel("IOU")
+    plt.savefig("images/validation_iou.png")
 
     # training and validation loss are stored in the "." run
     plt.figure()
@@ -69,12 +69,12 @@ def read_run(timestamp: str):
         scalars = mux.Scalars(".", name)
         x = [e.step for e in scalars]
         y = [e.value for e in scalars]
-        print(y)
         plt.plot(x, y, label=name)
     plt.grid()
     plt.legend()
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
+    plt.savefig("images/loss_curve.png")
     plt.show()
 
 
