@@ -1,8 +1,30 @@
+"""
+Functions to analyse data frequencies (how many images per human case)
+and perform splitting into training, validation and test sets.
+Data splits are hardcoded for reproduceability between machines, but the code
+that generated the splits is provided in `split_data()`.
+
+@author Tom Dickson
+"""
+
 import os
 import torch
 import torchio as tio
 
-def find_frequencies(directory: str, max_freq=8):
+def split_data(directory: str, max_freq=8):
+    """Allocate case ids to training, validation and test
+    sets, targetting a ratio of 8:1:2.
+
+    Args:
+        directory (str): directory containing case files (may be input
+            images or labels)
+        max_freq (int, optional): highest number of images possible per case
+            id (human subject). Defaults to 8.
+
+    Returns:
+        tuple[set, set, set]: sets of ids for the training, validation and test
+            sets
+    """
     names = os.listdir(directory)
     case_items: dict[str, list] = {}
     for name in names:
@@ -81,7 +103,29 @@ def find_frequencies(directory: str, max_freq=8):
     
 
 def make_dataloaders(path: str, input_dir: str, labels_dir: str, train_ids: set,
-                     val_ids: set, test_ids: set, limit=None, extension=".nii.gz", batch_size=1):
+                     val_ids: set, test_ids: set, limit: int = None,
+                     extension=".nii.gz", batch_size=1
+                     ) -> tuple[tio.SubjectsLoader, tio.SubjectsLoader, tio.SubjectsLoader]:
+    """Create Torchio Dataloaders from images and labels under the given path,
+    split according to the given sets of ids for training, validation and test sets.
+    A limit on the number of images to import, the file extension to search for,
+    and the batch size of the created dataloaders can also be specified.
+
+    Args:
+        path (str): path of parent directory of the input image directory and
+            label image directory.
+        input_dir (str): name of input image directory
+        labels_dir (str): name of labels directory
+        train_ids (set): case ids corresponding to the training set
+        val_ids (set): case ids corresponding to the validation set
+        test_ids (set): case ids corresponding to the test set
+        limit (int, optional): Max images to import. Defaults to None.
+        extension (str, optional): File extension of images and labels. Defaults to ".nii.gz".
+        batch_size (int, optional): Batch size of created dataloaders. Defaults to 1.
+
+    Returns:
+        Tuple[tio.SubjectsLoader, tio.SubjectsLoader, tio.SubjectsLoader]: train, validation and test SubjectsLoaders
+    """
     input_path = os.path.join(path, input_dir)
     labels_path = os.path.join(path, labels_dir)
     if limit is None:
@@ -108,6 +152,7 @@ def make_dataloaders(path: str, input_dir: str, labels_dir: str, train_ids: set,
         else:
             print("Warning: found a case that wasn't allocated to any set")
 
+    # apply data augmentation only to the training set
     train_transforms = [
         tio.RescaleIntensity(out_min_max=(0, 1)),
         tio.OneOf({
@@ -145,7 +190,7 @@ TEST_IDS = {'S028', 'G021', 'M036', 'L011', 'W012', 'M020', 'C032'}
 if __name__ == "__main__":
     # testing code
     path = r"data\semantic_labels_only"
-    train_ids, val_ids, test_ids = find_frequencies(path)
+    train_ids, val_ids, test_ids = split_data(path)
     # these 'should' be the same as TRAIN_IDS, VAL_IDS, TEST_IDS, except
     # for differences in RNG between machines
     train_loader, val_loader, test_loader = make_dataloaders("data","semantic_MRs","semantic_labels_only", train_ids, val_ids, test_ids)
@@ -156,23 +201,3 @@ if __name__ == "__main__":
         tio.LabelMap(tensor=labels).to_gif(2, 5, f"images/{number}-labels.gif")
         print(labels.data.unique())
         exit()
-    # names = [os.path.join(path, x) for x in os.listdir(path)]
-    # freqs = {}
-    # for name in os.listdir(path):
-    #     case = int(name[5:8])
-    #     if case in freqs:
-    #         freqs[case] += 1
-    #     else:
-    #         freqs[case] = 1
-    # x = []
-    # y = []
-    # for case, freq in freqs.items():
-    #     x.append(case)
-    #     y.append(freq)
-    # plt.bar(x,y)
-    # plt.xlabel("Case ID")
-    # plt.ylabel("Number of datapoints")
-    # plt.show()
-    # res = np.expand_dims(load_data_3D(names, early_stop=False, dtype=np.uint8),1)
-    # print(res.shape)
-    # print(np.max(res))
