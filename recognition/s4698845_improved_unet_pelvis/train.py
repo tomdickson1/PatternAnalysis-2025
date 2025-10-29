@@ -20,14 +20,13 @@ def train(net: AbstractNetwork, optimiser: optim.Optimizer, train_loader, val_lo
     print(f"Started training at {timestamp}")
     scaler = torch.amp.GradScaler("cuda")
     
-    for epoch in range(epochs):  # loop over the dataset multiple times
+    for epoch in range(epochs):
         running_loss = 0.0
         batches_done = 0
         epoch_start = time.time()
 
         for data in tqdm(train_loader):
             data: list[torch.Tensor]
-            # get the inputs; data is a list of [inputs, labels]
             inputs: torch.Tensor = data["inputs"][tio.DATA].half().to(device)
             labels: torch.Tensor = data["labels"][tio.DATA].long().to(device)
             # zero the parameter gradients
@@ -37,10 +36,9 @@ def train(net: AbstractNetwork, optimiser: optim.Optimizer, train_loader, val_lo
                 outputs = net(inputs)
                 # squeeze to remove the channel dimension since its length is 1
                 loss = net.loss(outputs, labels)
-            # loss.backward()
-            scaler.scale(loss).backward()
 
-            # optimizer.step()
+            # use the gradient scaler to account for differences due to autocasting
+            scaler.scale(loss).backward()
             scaler.step(optimiser)
 
             scaler.update()
@@ -49,7 +47,6 @@ def train(net: AbstractNetwork, optimiser: optim.Optimizer, train_loader, val_lo
             del inputs, labels, loss, outputs
         
         training_loss = running_loss / batches_done
-        # scheduler.step(training_loss)
         current_lr = get_lr(optimiser)
         writer.add_scalar("dice_loss/train", training_loss, epoch)
         print(f'[{epoch + 1}] loss: {training_loss:.3f}, lr={current_lr} ({time.time() - epoch_start:.2f} seconds)')
@@ -57,11 +54,7 @@ def train(net: AbstractNetwork, optimiser: optim.Optimizer, train_loader, val_lo
         if epoch % val_check_factor == 0:
             # run a check on the validation
             print("Validation Check!")
-            test(net, val_loader, device, writer, epoch)           
-
-        # if (time_limit > 0 and time.time() - start_time > time_limit):
-        #     print(f"Time's up! Stopping at Epoch {epoch+1}")
-        #     break
+            test(net, val_loader, device, writer, epoch)
 
     print('Finished Training')
     writer.flush()
@@ -93,18 +86,19 @@ def test(net : AbstractNetwork, loader, device, writer: SummaryWriter=None, epoc
     print(f"Dice Scores: {dice_score.detach().cpu().tolist()}")
     print(f"IOU: {iou.detach().cpu().tolist()}")
     if writer:
-        writer.add_scalars("dice_score/val", {f"class_{i}": x.detach().cpu().item() for i,x in enumerate(dice_score)}, epoch)
-        writer.add_scalars("iou/val", {f"class_{i}": x.detach().cpu().item() for i, x in enumerate(iou)}, epoch)
+        writer.add_scalars("dice_score/val",
+            {f"class_{i}": x.detach().cpu().item() for i,x in enumerate(dice_score)},
+            epoch)
+        writer.add_scalars("iou/val",
+            {f"class_{i}": x.detach().cpu().item() for i, x in enumerate(iou)},
+            epoch)
         writer.add_scalar("dice_loss/val", running_loss / len(loader), epoch)
 
-    # switch back to training mode to enable dropout
+    # switch back to training mode to enable dropout/training specific operations
     net.train()
 
 
 def main():
-    # TRAIN_IDS = {'K019'}
-    # VAL_IDS = {'W029'}
-    # TEST_IDS = {'S028'}
     parser = argparse.ArgumentParser(
                     prog='train.py',
                     description='trains the 3D Improved UNet Model',
@@ -144,8 +138,6 @@ def main():
             print("Invalid epochs specification!")
             exit()
         train(network, optimiser, train_loader, val_loader, epochs, device, val_check_factor=1)
-
-    # test(network, train_loader)
 
 if __name__ == "__main__":
     main()
