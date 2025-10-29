@@ -38,7 +38,23 @@ The ratio for the train, validation and test sets was set to be 8:1:2, so patien
 
 According to the 8:1:2 ratio, the number of images allocate to the train, validation and test sets should be 17.45, 2.18 and 4.36. Therefore, the patient with 2 images was allocated to the validation set, the patient with 4 images was allocated to the testing set, and the remaining patients were allocated to the testing set.
 
-The final number of images in each set was then 154, 19 and 38, which gives a ratio of 8:0.987:1.974.
+The final number of images in each set was then 154, 19 and 38, which gives a ratio of 8:0.987:1.974 - close to the target split ratio.
+
+## Network Structure
+
+### Layers
+
+[image of network from paper]
+
+explanation of key bits?
+
+### Loss Function
+
+Soft dice loss
+
+### Optimisation
+
+Half precision
 
 ## Results
 
