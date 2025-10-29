@@ -42,8 +42,17 @@ The final number of images in each set was then 154, 19 and 38, which gives a ra
 
 ## Results
 
-Cool graph 1
+The following table gives the test set dice scores for each class, showing that all were above the 0.8 threshold.
 
-Cool graph 2
+| Class | Background (0) | Body (1) | Bones (2) | Bladder (3) | Rectum (4) | Prostate (5) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Dice Score on Test Set**  | 0.996 | 0.961 | 0.901 | 0.947 | 0.836 | 0.844 |
 
-Epic test performance
+The following figure shows the behaviour as the model trained by plotting the dice loss under both the training
+and validation sets. The validation loss can be seen to plateau while the training curve still slightly decreases, indicating that further training of the model would result in overfitting.
+
+![](images/loss_curve.png)
+
+The following plot shows the improvement in validation set dice scores as the training progressed, showing how all reached above the 0.80 threshold by the final epoch. Note that the dice scores in the above table are for the *test* set, not the validation set. The validation set was montiored during training, while the test set was only used once at the end to assess the performance of the final model.
+
+![](images/validation_dice_scores.png)
