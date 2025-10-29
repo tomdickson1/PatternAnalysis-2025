@@ -4,6 +4,9 @@ from modules import Improved3DUnet, AbstractNetwork
 import argparse
 import torch
 import torchio as tio
+from tensorboard.backend.event_processing import event_accumulator, event_multiplexer
+import matplotlib.pyplot as plt
+import os
 
 def visualise(index: int, network: AbstractNetwork, loader: tio.SubjectsLoader):
     data = loader.dataset[index]
@@ -23,6 +26,58 @@ def visualise(index: int, network: AbstractNetwork, loader: tio.SubjectsLoader):
             tio.LabelMap(tensor=predicted_labels.cpu()).to_gif(2, 5, f"images/test-{index}-predicted.gif")
 
 
+def read_run(timestamp: str):
+    run_dir = os.path.join("runs", timestamp)
+
+    mux = event_multiplexer.EventMultiplexer()
+    mux.AddRunsFromDirectory(run_dir)
+    mux.Reload()
+
+    iou_runs = [name for name, data in mux.Runs().items() if "iou/val" in data["scalars"]]
+    dice_score_runs = [name for name, data in mux.Runs().items() if "dice_score/val" in data["scalars"]]
+
+    # DICE SCORE PLOT
+    plt.figure()
+    for class_run in dice_score_runs:
+        scalars = mux.Scalars(class_run, "dice_score/val")
+        x = [e.step for e in scalars]
+        y = [e.value for e in scalars]
+        print(y)
+        plt.plot(x, y, label=class_run)
+    plt.grid()
+    plt.legend()
+    plt.xlabel("Epoch")
+    plt.ylabel("Dice Score")
+    
+    # IOU PLOT
+    plt.figure()
+    for class_run in iou_runs:
+        scalars = mux.Scalars(class_run, "iou/val")
+        x = [e.step for e in scalars]
+        y = [e.value for e in scalars]
+        print(y)
+        plt.plot(x, y, label=class_run)
+    plt.grid()
+    plt.legend()
+    plt.xlabel("Epoch")
+    plt.ylabel("IOU")
+
+    # training and validation loss are stored in the "." run
+    plt.figure()
+
+    for name in ["dice_loss/train", "dice_loss/val"]:
+        scalars = mux.Scalars(".", name)
+        x = [e.step for e in scalars]
+        y = [e.value for e in scalars]
+        print(y)
+        plt.plot(x, y, label=name)
+    plt.grid()
+    plt.legend()
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.show()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
                     prog='predict.py',
@@ -31,6 +86,7 @@ if __name__ == "__main__":
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--model', required=True)
     parser.add_argument('--data')
+    parser.add_argument('--graphs', action='store_true')
     parser.add_argument('--vis')
     args = parser.parse_args()
 
@@ -52,3 +108,5 @@ if __name__ == "__main__":
     elif args.vis is not None:
         id_to_visualise = int(args.vis)
         visualise(id_to_visualise, network, test_loader)
+    elif args.graphs:
+        read_run(args.model)
