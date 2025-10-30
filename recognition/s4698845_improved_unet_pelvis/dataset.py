@@ -140,7 +140,8 @@ def make_dataloaders(path: str, input_dir: str, labels_dir: str, train_ids: set,
     for i in range(len(input_names)):
         subject = tio.Subject(
             inputs=tio.ScalarImage(input_names[i]),
-            labels=tio.LabelMap(labels_names[i])
+            labels=tio.LabelMap(labels_names[i]),
+            case_name=os.path.basename(input_names[i])[:10]
         )
         identifier = os.path.basename(input_names[i])[:4]
         if identifier in train_ids:

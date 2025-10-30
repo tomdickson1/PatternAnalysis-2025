@@ -27,11 +27,9 @@ def visualise(index: int, network: AbstractNetwork, loader: tio.SubjectsLoader):
             data
     """
     data = loader.dataset[index]
-    print(data)
     inputs: torch.Tensor = data["inputs"][tio.DATA].half().to(device)
     labels: torch.Tensor = data["labels"][tio.DATA].long().to(device)
-    print(inputs.shape)
-    print(labels.shape)
+    print(f"Creating GIFs for: {data["case_name"]}")
     network.eval()
     with torch.no_grad():
         with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
