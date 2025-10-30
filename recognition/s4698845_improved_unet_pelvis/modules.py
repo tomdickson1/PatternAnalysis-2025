@@ -1,7 +1,8 @@
 """
 Contains classes to build the 3D Improved UNet as described in [1].
 When executed standalone, this file checks the input and output dimensions
-by passing dummy data to the network.
+by passing dummy data to the network. The pre-activation residual
+block from [2] is used in the context module from [1].
 
 References:
 [1]: https://arxiv.org/abs/1802.10508v1
@@ -276,6 +277,8 @@ class Improved3DUnet(AbstractNetwork):
             up_layer_outputs.append(up_block(input_data, down_layer_outputs[reversed_index]))
         
         # apply segmentation layers to reduce channels to feature maps
+        # 'deep supervision' layers combine final output with output from
+        # localisation modules to improve gradient flow
 
         for i, seg in enumerate(self.segmentation_layers):
             # since the deepest localisation output is not used
