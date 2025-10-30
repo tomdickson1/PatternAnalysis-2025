@@ -94,17 +94,34 @@ The final number of images in each set was then 154, 19 and 38, which gives a ra
 
 ### Layers
 
-[image of network from paper]
+The implemented structure follows from [1], as shown in the below figure.
 
-explanation of key bits?
+![](images/unet_structure.png)
+
+The Improved 3D UNet has a down sampling and up sampling path, with new additions being the extra skip connections used to form the final segmentation output. The Improved 3D UNet design also uses a direct upscale operation instead of the traditional transposed convolution operation, which [1] claims reduces checkboard patterns in the output. The context modules used the pre-activation residual block described in [3].
+
+Segmentations are one-hot encoded, with six channels on the output so that one corresponds to each class.
+
+Some minor modifications to the structure were made:
+1. Adding padding as needed to the layers so that the output segmentation maps's size matched the input image size
+2. The dropout layers were effectively removed (by setting the probability to zero). This was done since it did not cause overfitting (see the results section), so therefore allowed for faster training.
 
 ### Loss Function
 
-Soft dice loss
+The standard cross entropy loss does not promote good segmentation performance when classes are imbalanced, which is often the case in medical datasets like the pelvis dataset. Therefore, as recommended by [1], the following differentiable multiclass dice loss is used:
 
-### Optimisation
+$$\mathcal{L}_{dc} = -\frac{2}{|K|} \sum_{k\in K} \frac{\sum_i u_{i,k} v_{i,k}}{\sum_i u_{i,k} + \sum_i v_{i,k}}$$
+where $u_{i,k}$ is the one-hot network output for the $i$th for class $k$ and $v_{i,k}$ is the one-hot encoded ground truth label (1 if voxel $i$ is of class $k$, 0 if not). This function is implemented in the `loss()` method of the `Improved3DUNet` in `modules.py`.
 
-Half precision
+For assessing validation and testing performance, the traditional 'hard' dice score is used:
+$$DSC = \frac{2|X\cap Y|}{|X| + |Y|}$$
+This metric is not differentiable since it requires counting counting the absolute predictions made by the network, which uses the non-differentiable argmax function.
+
+### Optimisations and Batch Size
+
+Given the large size of the training images and labels (256x256x128), training was initially slow, and consumed large amounts of GPU memory. This was prohibitive when attempting to train on non-cluster hardware. For this reason, the image data was compressed to half-precision (FP16), and PyTorch's [automatic mixed-precision](https://docs.pytorch.org/docs/stable/amp.html) was used to reduce the memory footprint of both the data and the model. Converting operations to FP16 also allow for faster compute times. This enabled a speedup of roughly a factor of 4x on an RTX2080 Super (single image training cycle time reduced from ~16 seconds to ~4 seconds).
+
+These optimisations likely carried over well to the final training which was done on an A100 GPU, where the 35 epochs were completed in 3 hrs 37 mins, or an average of 6.2 minutes per epoch. In all cases, a batch size of one was used as increasing this did not improve epoch completition time, and caused issues with conflicting image sizes produced by the data augmentation operations.
 
 ## Results
 
