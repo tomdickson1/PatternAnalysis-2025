@@ -151,6 +151,7 @@ def main():
     parser.add_argument('--prev',
                         help="timestamp of previous model to load, YYYYMMDD-HHMMSS. If not provided, train a new model")
     parser.add_argument('--epochs', help="number of epochs to train for")
+    parser.add_argument('--lr', default=5e-5, help="learning rate to use")
     parser.add_argument('--data', help="path to directory containing dataset")
     parser.add_argument('--batch', default=1,
                         help="batch size (only 1 is supported currently due to data augmentation)")
@@ -170,7 +171,7 @@ def main():
         net_to_use = torch.compile(network)
     else:
         net_to_use = network
-    optimiser = torch.optim.Adam(net_to_use.parameters(), lr=5e-5, eps=1e-6)
+    optimiser = torch.optim.Adam(net_to_use.parameters(), lr=float(args.lr), eps=1e-6)
     if args.prev:
         net_to_use.load_state_dict(torch.load(f"models/{args.prev}.model"))
         optimiser.load_state_dict(torch.load(f"models/{args.prev}.optim"))
