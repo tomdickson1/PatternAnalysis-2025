@@ -71,6 +71,11 @@ options:
   --vis VIS      index within testing data of input image from which to produce animated GIF segmentations
 ```
 
+Training metrics can also be interactively visualised using tensorboard by running
+```bash
+tensorboard --logdir=runs/[TIMESTAMP]
+```
+
 These scripts are supported by the following files:
 1. `modules.py` - contains the definition of the `Improved3DUNet()` class.
 2. `dataset.py` - handles data splitting and augmentation
