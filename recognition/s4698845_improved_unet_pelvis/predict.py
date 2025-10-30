@@ -103,13 +103,16 @@ def read_run(timestamp: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
                     prog='predict.py',
-                    description='tests and visualisation of a saved model',
+                    description='tests and visualises a saved model',
                     )
-    parser.add_argument('--test', action='store_true')
     parser.add_argument('--model', required=True)
-    parser.add_argument('--data')
-    parser.add_argument('--graphs', action='store_true')
-    parser.add_argument('--vis')
+    parser.add_argument('--test', action='store_true',
+                        help="test the model on the test set")
+    parser.add_argument('--data', help="path to directory containing dataset")
+    parser.add_argument('--graphs', action='store_true',
+                        help="create visualations of training metrics")
+    parser.add_argument('--vis',
+                        help="index within testing data of input image from which to produce animated GIF segmentations")
     args = parser.parse_args()
 
     data_folder = "data"
