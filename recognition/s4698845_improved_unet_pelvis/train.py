@@ -149,7 +149,7 @@ def main():
                         action='store_true',
                         help="JIT compile the model for faster performance (Linux only)")
     parser.add_argument('--prev',
-                        help="timestamp of previous model to load, YYYYMMDD-HHMMSS.If not provided, train a new model")
+                        help="timestamp of previous model to load, YYYYMMDD-HHMMSS. If not provided, train a new model")
     parser.add_argument('--epochs', help="number of epochs to train for")
     parser.add_argument('--data', help="path to directory containing dataset")
     parser.add_argument('--batch', default=1,
