@@ -1,6 +1,8 @@
 # Improved 3D UNet for Volumetric Segmentation of Pelvis Dataset
 
-The files contained in this directory implement the Improved 3D UNet from [reference], and apply it to segment the pelvis dataset from [link].
+The files contained in this directory implement the Improved 3D UNet from [1], and apply it to segment the pelvis dataset from [4].
+
+The following table shows the input MRI image, ground truth labels and generated segmentation labels for the case `C032_Week0`. The classes in order of brightness are "Background", "Body", "Bones", "Bladder", "Rectum" and "Prostate".
 
 | Input | Ground Truth | Generated Segmentation |
 | :---: | :---: | :---: |
@@ -139,3 +141,25 @@ and validation sets. The validation loss can be seen to plateau while the traini
 The following plot shows the improvement in validation set dice scores as the training progressed, showing how all reached above the 0.80 threshold by the final epoch. Note that the dice scores in the above table are for the *test* set, not the validation set. The validation set was montiored during training, while the test set was only used once at the end to assess the performance of the final model.
 
 ![](images/validation_dice_scores.png)
+
+As a bonus, here are some more segmentation comparisons, this time for case `G021_Week2`. The generated segmentations follow the input labels very well, although it can be seen that sometimes background pixels (black) are erroneously added inside the body in between otherwise correct classes. This may be address by experimenting with training for more epochs and using a learning rate scheduler to reduce the learning rate in later epochs.
+| Input | Ground Truth | Generated Segmentation |
+| :---: | :---: | :---: |
+| ![](images/test-10-input.gif)  | ![](images/test-10-labels.gif) | ![](images/test-10-predicted.gif) |
+
+## Conclusions
+
+The network performed very well and met the performance requirements. The main limitation was the erroneous background pixels as described in the results section, which could potentially be addressed through further training and learning rate schedulers.
+
+Further work could also examine lower memory consumption models to perform the same task, such as CAN3D [2].
+
+
+## References
+
+[1] F. Isensee, P. Kickingereder, W. Wick, M. Bendszus, and K. H. Maier-Hein, “Brain Tumor Segmentation and Radiomics Survival Prediction: Contribution to the BRATS 2017 Challenge,” Feb. 28, 2018, arXiv: arXiv:1802.10508. doi: 10.48550/arXiv.1802.10508.
+
+[2] W. Dai et al., “CAN3D: Fast 3D Medical Image Segmentation via Compact Context Aggregation,” Sept. 22, 2021, arXiv: arXiv:2109.05443. doi: 10.48550/arXiv.2109.05443.
+
+[3] K. He, X. Zhang, S. Ren, and J. Sun, “Identity Mappings in Deep Residual Networks,” July 25, 2016, arXiv: arXiv:1603.05027. doi: 10.48550/arXiv.1603.05027.
+
+[4] J. Dowling and P. Greer, “Labelled weekly MR images of the male pelvis.” CSIRO, 2021. doi: 10.25919/45T8-P065.
