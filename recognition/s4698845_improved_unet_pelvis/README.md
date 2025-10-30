@@ -9,19 +9,27 @@ The files contained in this directory implement the Improved 3D UNet from [refer
 
 ## Instructions/dependencies
 
-### Windows
+### Windows with conda
 To install the required dependencies, create a new conda environment and install the packages from the environment.yaml file in this directory. For example:
 ```bash
 conda env create --name unet3d --file .\environment.yaml
 ```
 
-### Others
+### Others with pip
 
-The yaml file describes the environment setup for Windows. For other OS's, you will need to install the following packages manually:
-- torch
-- torchio
-- numpy
-- matplotlib
+The yaml file describes the environment setup for Windows using conda. For other OS's, you will need to install the following packages manually:
+- torch (2.9.0+cu126)
+- torchio (0.20.23)
+- numpy (2.3.3)
+- matplotlib (3.10.7)
+- tensorboard (2.20.0)
+- tqdm (4.67.1)
+
+Alternatively, the `requirements.txt` file may be installed by activating a python venv and running
+```bash
+pip install -r requirments.txt
+```
+
 
 ## Data splitting
 
