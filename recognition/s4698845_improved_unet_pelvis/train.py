@@ -21,7 +21,9 @@ N_CLASSES = 6
 INITIAL_UNET_CHANNELS = 16
 UNET_DEPTH = 4
 
-def train(net: AbstractNetwork, optimiser: optim.Optimizer, train_loader, val_loader, epochs, device, val_check_factor=2):
+def train(net: AbstractNetwork, optimiser: optim.Optimizer,
+          train_loader: tio.SubjectsLoader, val_loader: tio.SubjectsLoader,
+          epochs: int, device: str, val_check_factor: int =2):
     """Train the given network with the given optimiser, using data from the 
     given training loader. 
 
@@ -82,7 +84,8 @@ def train(net: AbstractNetwork, optimiser: optim.Optimizer, train_loader, val_lo
     torch.save(net.state_dict(), f"models/{timestamp}.model")
     torch.save(optimiser.state_dict(), f"models/{timestamp}.optim")
 
-def test(net : AbstractNetwork, loader, device, writer: SummaryWriter=None, epoch=None):
+def test(net : AbstractNetwork, loader: tio.SubjectsLoader, device: str,
+         writer: SummaryWriter=None, epoch=None):
     """Test the given network with data from the given SubjectsLoader. If using
     inside a training loop, can supply a tensorboard summary writer and epoch
     number so data can be saved.
