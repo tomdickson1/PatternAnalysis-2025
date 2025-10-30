@@ -30,8 +30,50 @@ Alternatively, the `requirements.txt` file may be installed by activating a pyth
 pip install -r requirments.txt
 ```
 
+### Description of files
 
-## Data splitting
+The main files are:
+1. `train.py` - handles training the Improved 3D UNet model, logging data, and saving the model and optimiser state for later use
+2. `predict.py` - used to produce performance metrics for a trained model, such as dice scores and the animated GIFs shown in the introduction.
+
+These scripts accept commandline arguments. Their help pages are:
+```bash
+usage: train.py [-h] [--test] [--compile] [--prev PREV] [--epochs EPOCHS] [--data DATA] [--batch BATCH]
+
+trains the 3D Improved UNet Model
+
+options:
+  -h, --help       show this help message and exit
+  --test           test the model on the test set (requires specifying --prev)
+  --compile        JIT compile the model for faster performance (Linux only)
+  --prev PREV      timestamp of previous model to load, YYYYMMDD-HHMMSS. If not provided, train a new model
+  --epochs EPOCHS  number of epochs to train for
+  --data DATA      path to directory containing dataset
+  --batch BATCH    batch size (only 1 is supported currently due to data augmentation)
+```
+
+```bash
+usage: predict.py [-h] --model MODEL [--test] [--data DATA] [--graphs] [--vis VIS]
+
+tests and visualises a saved model
+
+options:
+  -h, --help     show this help message and exit
+  --model MODEL
+  --test         test the model on the test set
+  --data DATA    path to directory containing dataset
+  --graphs       create visualations of training metrics
+  --vis VIS      index within testing data of input image from which to produce animated GIF segmentations
+```
+
+These scripts are supported by the following files:
+1. `modules.py` - contains the definition of the `Improved3DUNet()` class.
+2. `dataset.py` - handles data splitting and augmentation
+3. `utils.py` - utility functions
+
+## Data preparation
+
+### Splitting
 
 The data was split into training, validation and testing sets, to ensure the final results on the test set would accurately reflect the model's performance on unseen samples.
 
