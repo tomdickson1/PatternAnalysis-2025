@@ -120,10 +120,13 @@ Some minor modifications to the structure were made:
 The standard cross entropy loss does not promote good segmentation performance when classes are imbalanced, which is often the case in medical datasets like the pelvis dataset. Therefore, as recommended by [1], the following differentiable multiclass dice loss is used:
 
 $$\mathcal{L}_{dc} = -\frac{2}{|K|} \sum_{k\in K} \frac{\sum_i u_{i,k} v_{i,k}}{\sum_i u_{i,k} + \sum_i v_{i,k}}$$
+
 where $u_{i,k}$ is the one-hot network output for the $i$th for class $k$ and $v_{i,k}$ is the one-hot encoded ground truth label (1 if voxel $i$ is of class $k$, 0 if not). This function is implemented in the `loss()` method of the `Improved3DUNet` in `modules.py`.
 
 For assessing validation and testing performance, the traditional 'hard' dice score is used:
+
 $$DSC = \frac{2|X\cap Y|}{|X| + |Y|}$$
+
 This metric is not differentiable since it requires counting counting the absolute predictions made by the network, which uses the non-differentiable argmax function.
 
 ### Optimisations and Batch Size
