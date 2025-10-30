@@ -1,93 +1,30 @@
-import numpy as np
-import nibabel as nib
-from tqdm import tqdm
-import matplotlib.pyplot as plt
+"""
+Functions to analyse data frequencies (how many images per human case)
+and perform splitting into training, validation and test sets.
+Data splits are hardcoded for reproduceability between machines, but the code
+that generated the splits is provided in `split_data()`.
+
+@author Tom Dickson
+"""
+
 import os
-import sys
 import torch
 import torchio as tio
 
-def to_channels(arr: np.ndarray, dtype = np.uint8) -> np.ndarray :
-    channels = np.unique(arr)
-    res = np.zeros(arr.shape + (len(channels),), dtype = dtype )
-    for c in channels :
-        c = int(c)
-        res[...,c:c+1][arr == c]= 1
+def split_data(directory: str, max_freq=8):
+    """Allocate case ids to training, validation and test
+    sets, targetting a ratio of 8:1:2.
 
-    return res
+    Args:
+        directory (str): directory containing case files (may be input
+            images or labels)
+        max_freq (int, optional): highest number of images possible per case
+            id (human subject). Defaults to 8.
 
-def load_data_3D(imageNames, normImage = False, categorical = False, dtype = np.float32 ,
-    getAffines = False, orient = False, early_stop = False):
-    '''
-    Load medical image data from names, cases list provided into a list for each.
-    This function pre - allocates 5 D arrays for conv3d to avoid excessive memory
-    usage.
-
-    normImage: bool(normalise the image 0.0 -1.0)
-    orient: Apply orientation and resample image? Good for images with large slice
-    thickness or anisotropic resolution
-    dtype: Type of the data.If dtype = np.uint8, it is assumed that the data is
-    labels
-    early_stop: Stop loading pre - maturely? Leaves arrays mostly empty, for quick
-    loading and testing scripts.
-    '''
-    affines =[]
-    # ~ interp ='continuous'
-    interp ='linear'
-    if dtype == np.uint8: # assume labels
-        interp ='nearest'
-
-    # get fixed size
-    num = len(imageNames)
-    niftiImage = nib.load(imageNames[0])
-    # TODO: ask about this im.applyOrientation thing?
-    if orient:
-        niftiImage = niftiImage.applyOrientation(niftiImage, interpolation = interp, scale =1)
-    # ~ testResultName = " oriented.nii.gz "
-    # ~ niftiImage.to_filename(testResultName )
-    first_case = niftiImage.get_fdata(caching = 'unchanged')
-    if len(first_case.shape)== 4:
-        first_case = first_case[:,:,:,0]# sometimes extra dims, remove
-    if categorical:
-        first_case = to_channels(first_case, dtype = dtype)
-        rows, cols, depth, channels = first_case.shape
-        images = np.zeros (( num, rows, cols, depth, channels ), dtype = dtype)
-    else:
-        rows, cols, depth = first_case.shape
-        images = np.zeros((num, rows, cols, depth), dtype = dtype)
-
-    for i, inName in enumerate(tqdm(imageNames)):
-        niftiImage = nib.load(inName)
-        if orient:
-            niftiImage = im.applyOrientation(niftiImage, interpolation=interp, scale=1)
-        inImage = niftiImage.get_fdata(caching ='unchanged') # read disk only
-        affine = niftiImage.affine
-        if len(inImage.shape)== 4:
-            inImage = inImage[: ,: ,: ,0] # sometimes extra dims in HipMRI_study data
-        inImage = inImage[: ,: ,: depth] # clip slices
-        inImage = inImage.astype(dtype)
-        if normImage :
-            # ~ inImage = inImage / np.linalg.norm(inImage )
-            # ~ inImage = 255. * inImage / inImage.max ()
-            inImage = (inImage - inImage.mean()) / inImage.std()
-        if categorical :
-            inImage = to_channels(inImage, dtype = dtype)
-            # ~ images[i ,: ,: ,: ,:]= inImage
-            images[i ,: inImage.shape[0],: inImage.shape[1],: inImage.shape[2],: inImage.shape[3]]= inImage # with pad
-        else:
-            # ~ images[i ,: ,: ,:]= inImage
-            images[i ,: inImage.shape[0],: inImage.shape[1],: inImage.shape[2]]= inImage # with pad
-
-        affines.append(affine)
-        if i > 20 and early_stop :
-            break
-
-    if getAffines:
-        return images, affines
-    else:
-        return images
-
-def find_frequencies(directory: str, max_freq=8):
+    Returns:
+        tuple[set, set, set]: sets of ids for the training, validation and test
+            sets
+    """
     names = os.listdir(directory)
     case_items: dict[str, list] = {}
     for name in names:
@@ -166,7 +103,29 @@ def find_frequencies(directory: str, max_freq=8):
     
 
 def make_dataloaders(path: str, input_dir: str, labels_dir: str, train_ids: set,
-                     val_ids: set, test_ids: set, limit=None, extension=".nii.gz", batch_size=1):
+                     val_ids: set, test_ids: set, limit: int = None,
+                     extension=".nii.gz", batch_size=1
+                     ) -> tuple[tio.SubjectsLoader, tio.SubjectsLoader, tio.SubjectsLoader]:
+    """Create Torchio Dataloaders from images and labels under the given path,
+    split according to the given sets of ids for training, validation and test sets.
+    A limit on the number of images to import, the file extension to search for,
+    and the batch size of the created dataloaders can also be specified.
+
+    Args:
+        path (str): path of parent directory of the input image directory and
+            label image directory.
+        input_dir (str): name of input image directory
+        labels_dir (str): name of labels directory
+        train_ids (set): case ids corresponding to the training set
+        val_ids (set): case ids corresponding to the validation set
+        test_ids (set): case ids corresponding to the test set
+        limit (int, optional): Max images to import. Defaults to None.
+        extension (str, optional): File extension of images and labels. Defaults to ".nii.gz".
+        batch_size (int, optional): Batch size of created dataloaders. Defaults to 1.
+
+    Returns:
+        Tuple[tio.SubjectsLoader, tio.SubjectsLoader, tio.SubjectsLoader]: train, validation and test SubjectsLoaders
+    """
     input_path = os.path.join(path, input_dir)
     labels_path = os.path.join(path, labels_dir)
     if limit is None:
@@ -193,6 +152,7 @@ def make_dataloaders(path: str, input_dir: str, labels_dir: str, train_ids: set,
         else:
             print("Warning: found a case that wasn't allocated to any set")
 
+    # apply data augmentation only to the training set
     train_transforms = [
         tio.RescaleIntensity(out_min_max=(0, 1)),
         tio.OneOf({
@@ -230,7 +190,7 @@ TEST_IDS = {'S028', 'G021', 'M036', 'L011', 'W012', 'M020', 'C032'}
 if __name__ == "__main__":
     # testing code
     path = r"data\semantic_labels_only"
-    train_ids, val_ids, test_ids = find_frequencies(path)
+    train_ids, val_ids, test_ids = split_data(path)
     # these 'should' be the same as TRAIN_IDS, VAL_IDS, TEST_IDS, except
     # for differences in RNG between machines
     train_loader, val_loader, test_loader = make_dataloaders("data","semantic_MRs","semantic_labels_only", train_ids, val_ids, test_ids)
@@ -241,23 +201,3 @@ if __name__ == "__main__":
         tio.LabelMap(tensor=labels).to_gif(2, 5, f"images/{number}-labels.gif")
         print(labels.data.unique())
         exit()
-    # names = [os.path.join(path, x) for x in os.listdir(path)]
-    # freqs = {}
-    # for name in os.listdir(path):
-    #     case = int(name[5:8])
-    #     if case in freqs:
-    #         freqs[case] += 1
-    #     else:
-    #         freqs[case] = 1
-    # x = []
-    # y = []
-    # for case, freq in freqs.items():
-    #     x.append(case)
-    #     y.append(freq)
-    # plt.bar(x,y)
-    # plt.xlabel("Case ID")
-    # plt.ylabel("Number of datapoints")
-    # plt.show()
-    # res = np.expand_dims(load_data_3D(names, early_stop=False, dtype=np.uint8),1)
-    # print(res.shape)
-    # print(np.max(res))

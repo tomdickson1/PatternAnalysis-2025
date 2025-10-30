@@ -1,3 +1,11 @@
+"""
+Funcitons to visualise the model's output segmentations by
+generating animated gif images, and produce training metric
+plots from saved tensorboard files.
+
+@author Tom Dickson
+"""
+
 from dataset import make_dataloaders, TRAIN_IDS, VAL_IDS, TEST_IDS
 from train import test
 from modules import Improved3DUnet, AbstractNetwork
@@ -9,6 +17,15 @@ import matplotlib.pyplot as plt
 import os
 
 def visualise(index: int, network: AbstractNetwork, loader: tio.SubjectsLoader):
+    """Produce animated gifs comparing the input scan, labels and predicted
+    network output for the given input index in the given SubjectsLoader.
+
+    Args:
+        index (int): index within SubjectsLoader to visualise
+        network (AbstractNetwork): network whose outputs are to be visualised
+        loader (tio.SubjectsLoader): SubjectsLoader containing input and labels
+            data
+    """
     data = loader.dataset[index]
     print(data)
     inputs: torch.Tensor = data["inputs"][tio.DATA].half().to(device)
@@ -27,6 +44,13 @@ def visualise(index: int, network: AbstractNetwork, loader: tio.SubjectsLoader):
 
 
 def read_run(timestamp: str):
+    """
+    Produce plots showing training metrics for the run with the given timestamp.
+    Requires tensorboard logs to be saved to the directory "runs/{timestamp}".
+
+    Args:
+        timestamp (str): _description_
+    """
     run_dir = os.path.join("runs", timestamp)
 
     mux = event_multiplexer.EventMultiplexer()
