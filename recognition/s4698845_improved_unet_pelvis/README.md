@@ -9,17 +9,17 @@ The following table shows the input MRI image, ground truth labels and generated
 | ![](images/test-0-input.gif)  | ![](images/test-0-labels.gif) | ![](images/test-0-predicted.gif) |
 
 
-## Instructions/dependencies
-
-### Windows with conda
+## Usage
+### Installation
+#### Windows with conda
 To install the required dependencies, create a new conda environment and install the packages from the environment.yaml file in this directory. For example:
 ```bash
 conda env create --name unet3d --file .\environment.yaml
 ```
 
-### Others with pip
+#### Others with pip
 
-The yaml file describes the environment setup for Windows using conda. For other OS's, you will need to install the following packages manually:
+The yaml file describes the environment setup for Windows using conda. For other OS's, you will need to install the following packages:
 - torch (2.9.0+cu126)
 - torchio (0.20.23)
 - numpy (2.3.3)
@@ -27,7 +27,7 @@ The yaml file describes the environment setup for Windows using conda. For other
 - tensorboard (2.20.0)
 - tqdm (4.67.1)
 
-Alternatively, the `requirements.txt` file may be installed by activating a python venv and running
+The `requirements.txt` file may be installed by activating a python venv and running
 ```bash
 pip install -r requirments.txt
 ```
@@ -91,6 +91,13 @@ The ratio for the train, validation and test sets was set to be 8:1:2, so patien
 According to the 8:1:2 ratio, the number of images allocate to the train, validation and test sets should be 17.45, 2.18 and 4.36. Therefore, the patient with 2 images was allocated to the validation set, the patient with 4 images was allocated to the testing set, and the remaining patients were allocated to the testing set.
 
 The final number of images in each set was then 154, 19 and 38, which gives a ratio of 8:0.987:1.974 - close to the target split ratio.
+
+### Augmentations
+
+All images were rescaled so the minimum intensity was zero and the maximum intensity was one.
+
+Data augmentation was applied to the training set images and labels to perform regularisation to prevent overfitting. The [torchio](https://github.com/TorchIO-project/torchio) library streamlines this process greatly for 3D medical images. 25% of the time, no augmentation was applied and 75% of the time, either a random affine transformation (80% probability) or a random elastic deformation (20% probability) was applied.
+
 
 ## Network Structure
 
