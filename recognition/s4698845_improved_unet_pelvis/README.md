@@ -1,4 +1,4 @@
-# Improved 3D UNet for Volumetric Segmentation of Pelvis Dataset
+# Improved 3D UNet for Volumetric Segmentation of Pelvis Dataset (Hard Difficulty)
 
 The files contained in this directory implement the Improved 3D UNet from [1], and apply it to segment the pelvis dataset from [4].
 
@@ -114,7 +114,7 @@ The Improved 3D UNet has a downsampling and upsampling path, with new additions 
 
 The downsampling path uses strided convolutions (kernel size of 3) and residual blocks called 'context' modules to reduce the image size while increasing the number of channels, with the aim to extract higher level features of the image. The context modules have two convolutional layers separated by instance normalisation and dropout layers - these implement the 'pre-activation residual block' described in [3].
 
-Theses high-level patterns are then used in the upsampling path to create the final segmentation. The localisation modules in the upsampling path apply convolutions to reduce the number of feature maps, and combine these maps with the outputs of each downsampling layer using skip-connections. These connections promote gradient flow throughout the network. An additional improvement introduced by the Improved 3D UNet is the usage of the 'deep supervision', where the output of the final two localisation modules is combined directly (via a segmentation layer to correct the number of channel), with the final output of the network. This is done so gradients flow more evenly through the network, reducing the vanishing gradients problem.
+Theses high-level patterns are then used in the upsampling path to create the final segmentation. The localisation modules in the upsampling path apply convolutions to reduce the number of feature maps, and combine these maps with the outputs of each downsampling layer using skip-connections. These connections promote gradient flow throughout the network. An additional improvement introduced by the Improved 3D UNet is the usage of the 'deep supervision', where the output of the final two localisation modules is combined directly (via a segmentation layer to correct the number of channels), with the final output of the network. This is done so gradients flow more evenly through the network, reducing the vanishing gradients problem.
 
 Segmentations are one-hot encoded, with six channels on the output so that one corresponds to each class. This is required so that no order is conferred on the classes, as would happen if the output layer had only one channel, and the network had to predict class indices.
 
@@ -144,7 +144,7 @@ The network was trained using the Adam optimiser with a learning rate of 5e-5. H
 
 Given the large size of the training images and labels (256x256x128), training was initially slow, and consumed large amounts of GPU memory. This was prohibitive when attempting to train on non-cluster hardware. For this reason, the image data was compressed to half-precision (FP16), and PyTorch's [automatic mixed-precision](https://docs.pytorch.org/docs/stable/amp.html) was used to reduce the memory footprint of both the data and the model. Converting operations to FP16 also allow for faster compute times. This enabled a speedup of roughly a factor of 4x on an RTX2080 Super (single image training cycle time reduced from ~16 seconds to ~4 seconds).
 
-These optimisations likely carried over well to the final training which was done on an A100 GPU (UQ's Rangpur cluster), where the 35 epochs were completed in 3 hrs 37 mins, or an average of 6.2 minutes per epoch. In all cases, a batch size of one was used as increasing this did not improve epoch completition time, and caused issues with conflicting image sizes produced by the data augmentation operations.
+These optimisations likely carried over well to the final training which was done on an A100 GPU (UQ's Rangpur cluster), where the 35 epochs were completed in 3 hrs 37 mins, or an average of 6.2 minutes per epoch. In all cases, a batch size of one was used as increasing this did not improve epoch completion time, and caused issues with conflicting image sizes produced by the data augmentation operations.
 
 ## Results
 
@@ -155,7 +155,7 @@ The following table gives the test set dice scores for each class, showing that 
 | **Dice Score on Test Set**  | 0.996 | 0.961 | 0.901 | 0.947 | 0.836 | 0.844 |
 
 The following figure shows the behaviour as the model trained by plotting the dice loss under both the training
-and validation sets. The validation loss can be seen to plateau while the training curve still slightly decreases, indicating that further training of the model would result in overfitting. The network was trained for 35 epochs, which took 3 hrs 37 mins on an A100 GPU on UQ's Rangpur cluster.
+and validation sets. The validation loss can be seen to plateau while the training curve still slightly decreases, indicating that further training of the model would may result in overfitting without additional regularisation. The network was trained for 35 epochs, which took 3 hrs 37 mins on an A100 GPU on UQ's Rangpur cluster.
 
 ![](images/loss_curve.png)
 
@@ -163,7 +163,7 @@ The following plot shows the improvement in validation set dice scores as the tr
 
 ![](images/validation_dice_scores.png)
 
-As a bonus, here are some more segmentation comparisons, this time for case `G021_Week2`. The generated segmentations follow the input labels very well, although it can be seen that sometimes background pixels (black) are erroneously added inside the body in between otherwise correct classes. This may be address by experimenting with training for more epochs and using a learning rate scheduler to reduce the learning rate in later epochs.
+As a bonus, here are some more segmentation comparisons, this time for case `G021_Week2`. The generated segmentations follow the input labels very well, although it can be seen that sometimes background pixels (black) are erroneously added inside the body in between otherwise correct classes. This may be address by experimenting with training for more epochs and using a learning rate scheduler to reduce the learning rate in later epochs. To prevent overfitting, dropout may need to be re-introduced.
 | Input | Ground Truth | Generated Segmentation |
 | :---: | :---: | :---: |
 | ![](images/test-10-input.gif)  | ![](images/test-10-labels.gif) | ![](images/test-10-predicted.gif) |
