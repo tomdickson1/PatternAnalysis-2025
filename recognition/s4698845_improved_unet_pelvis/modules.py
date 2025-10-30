@@ -231,8 +231,8 @@ class Improved3DUnet(AbstractNetwork):
             self.up_blocks.append(block)
             self.add_module(f"Up Block {i+1}", block)
             if i < depth - 1:
-                # i.e. for all layers except the first up block
-                # TODO: ask about kernel size
+                # apply a final conv3D to set the number of output channels
+                # to the number of classes so that the output is one-hot encoded
                 seg = nn.Conv3d(c_out, n_classes, kernel_size=1)
                 self.segmentation_layers.append(seg)
                 self.add_module(f"Segmentation for UpBlock {i+1}", seg)
