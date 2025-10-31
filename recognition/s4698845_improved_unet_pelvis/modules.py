@@ -348,6 +348,10 @@ class Improved3DUnet(AbstractNetwork):
 
 
 if __name__ == "__main__":
+    """
+    Test code to veriying the input and output dimensions of the
+    Improved 3D UNet model.
+    """
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
     classes = 6

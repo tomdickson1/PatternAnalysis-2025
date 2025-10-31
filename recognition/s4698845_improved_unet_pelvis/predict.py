@@ -1,5 +1,5 @@
 """
-Funcitons to visualise the model's output segmentations by
+Functions to visualise the model's output segmentations by
 generating animated gif images, and produce training metric
 plots from saved tensorboard files.
 
