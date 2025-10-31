@@ -27,6 +27,8 @@ The yaml file describes the environment setup for Windows using conda. For other
 - tensorboard (2.20.0)
 - tqdm (4.67.1)
 
+The repo has been tested with Python 3.13.
+
 The `requirements.txt` file may be installed by activating a python venv and running
 ```bash
 pip install -r requirments.txt
