@@ -57,6 +57,11 @@ options:
   --batch BATCH    batch size (only 1 is supported currently due to data augmentation)
 ```
 
+For example, to train the network on Rangpur:
+```bash
+python train.py --epochs 35 --batch 1 --lr 5e-5 --data /home/groups/comp3710/HipMRI_Study_open
+```
+
 ```bash
 usage: predict.py [-h] --model MODEL [--test] [--data DATA] [--graphs] [--vis VIS]
 
